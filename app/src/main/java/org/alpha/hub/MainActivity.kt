@@ -9,7 +9,10 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
+import android.webkit.JavascriptInterface
+import org.json.JSONObject
 import java.io.ByteArrayInputStream
+import java.util.concurrent.Executors
 
 /**
  * ዋናው ማያ ገጽ: HTML/CSS/JS በይነገጹን በ WebView ውስጥ ያሳያል።
@@ -39,13 +42,26 @@ class MainActivity : AppCompatActivity() {
                     val url = request.url
                     if (url.host != "appassets.androidplatform.net") return null
                     val path = url.path ?: "/"
-                    if (path.startsWith("/api/")) {
-                        return router.handle(request.method, path, url.query, request.requestHeaders)
-                    }
                     return serveAsset(if (path == "/") "/index.html" else path)
                 }
             }
         }
+        // JS -> Kotlin ድልድይ: POST body በ shouldInterceptRequest ስለማይገኝ ጥሪዎች በዚህ ይሄዳሉ
+        // JS -> Kotlin bridge (request bodies are not available in shouldInterceptRequest)
+        val pool = Executors.newFixedThreadPool(4)
+        web.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun call(id: Int, method: String, path: String, bodyJson: String) {
+                pool.execute {
+                    val body = try { JSONObject(bodyJson) } catch (e: Exception) { JSONObject() }
+                    val (status, data) = router.handle(method, path, body)
+                    val out = JSONObject().put("status", status).put("data", data).toString()
+                    // JSON ሕብረቁምፊ ወደ JS እንደ ሕብረቁምፊ ቋሚ ይተላለፋል / pass as a JS string literal
+                    val lit = JSONObject.quote(out)
+                    runOnUiThread { web.evaluateJavascript("window.A && A._bridgeDone($id, $lit)", null) }
+                }
+            }
+        }, "AlphaBridge")
         setContentView(web)
         web.loadUrl("$origin/index.html")
     }

@@ -61,11 +61,29 @@
     constructor(status, data) { super((data && data.message) || 'error'); this.status = status; this.data = data || {}; }
   }
   A.ApiError = ApiError;
+  // Android: ጥሪዎች በ Kotlin ድልድይ (AlphaBridge) ይሄዳሉ። በኮምፒውተር ሙከራ ላይ ወደ fetch ይመለሳል።
+  // Android: calls go through the Kotlin bridge; falls back to fetch when testing in a desktop browser.
+  const pending = {}; let nextId = 1;
+  A._bridgeDone = function (id, raw) {
+    const cb = pending[id]; delete pending[id];
+    if (cb) cb(raw);
+  };
   A.api = async function api(method, path, body) {
+    if (window.AlphaBridge) {
+      const raw = await new Promise((resolve) => {
+        const id = nextId++;
+        pending[id] = resolve;
+        window.AlphaBridge.call(id, method, path, JSON.stringify(body || {}));
+      });
+      let r = { status: 500, data: {} };
+      try { r = JSON.parse(raw); } catch (e) { /* ባዶ */ }
+      if (r.status >= 400) throw new ApiError(r.status, r.data);
+      return r.data;
+    }
     const opt = { method, cache: 'no-store', headers: { 'X-Alpha': '1' } };
     if (method !== 'GET') { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body || {}); }
     let res;
-    try { res = await fetch(path, opt); } catch (e) { throw new ApiError(0, { message: t('err_local_server') }); }   // ይህ የአፑ ውስጣዊ ሰርቨር ነው (127.0.0.1)፣ ኢንተርኔት አይደለም
+    try { res = await fetch(path, opt); } catch (e) { throw new ApiError(0, { message: t('err_local_server') }); }
     let data = {};
     try { data = await res.json(); } catch (e) { /* ባዶ */ }
     if (!res.ok) throw new ApiError(res.status, data);
