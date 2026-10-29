@@ -17,6 +17,17 @@ android {
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
 
+    // ቋሚ የ debug ፊርማ: እያንዳንዱ ግንባታ አንድ አይነት ፊርማ እንዲኖረው (ያለዚያ "App not installed" ይመጣል)።
+    // Fixed debug signing key so every CI build can update the previous install. (Not secret; release key will be separate.)
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("alpha-debug.keystore")
+            storePassword = "android"
+            keyAlias = "alphadebug"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
