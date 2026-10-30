@@ -37,13 +37,14 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
         return o
     }
 
-    private fun startJob(work: (JobState) -> JSONObject): JSONObject {
+    fun runJob(work: (JobState) -> JSONObject): JSONObject {
         val id = UUID.randomUUID().toString()
         val j = JobState(); jobs[id] = j
         Thread {
             try { j.result = work(j); j.state = "done" }
             catch (e: GeminiError) { j.error = msg(e.key); j.state = "error" }
             catch (e: ApiError) { j.error = msg(e.key); j.state = "error" }
+            catch (e: OfflineError) { j.error = offlineMessage(e, msg); j.state = "error" }
             catch (e: Exception) { j.error = msg("err_server"); j.state = "error" }
         }.start()
         return JSONObject().put("job_id", id)
@@ -111,7 +112,7 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
         if (topic.isEmpty() || (qtype != "mc" && qtype != "tf")) throw ApiError(400, "quiz_need_input")
         if (count < 1 || count > maxQuestions) throw ApiError(400, "quiz_count_range")
         val key = requireKey()
-        return startJob {
+        return runJob {
             val lang = if (hasEthiopic(topic)) "Amharic" else "English"
             val rule = if (qtype == "tf") "Each question has exactly two options: [\"True\", \"False\"] and \"answer\" is \"True\" or \"False\"."
             else "Each question has exactly 4 options and \"answer\" is the exact text of the correct option."
@@ -247,7 +248,7 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
         val length = b.optString("length", "short")
         if (topic.isEmpty() || (length != "short" && length != "medium")) throw ApiError(400, "notes_need_topic")
         val key = requireKey()
-        return startJob {
+        return runJob {
             val lang = if (hasEthiopic(topic)) "Amharic" else "English"
             val words = if (length == "medium") 180 else 110
             val system = "You write clear, accurate, concise study notes for Ethiopian students. Plain text only: no markdown headings, no tables."

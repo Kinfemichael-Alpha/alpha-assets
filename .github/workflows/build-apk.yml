@@ -13,6 +13,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Fetch llama.cpp
+        run: git clone --depth 1 --branch b9999 https://github.com/ggml-org/llama.cpp app/src/main/cpp/llama.cpp
+      - name: Install NDK and CMake
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;26.3.11579264" "cmake;3.22.1" > /dev/null
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'

@@ -4,3 +4,5 @@ local.properties
 app_secrets.json
 *.jks
 release*.keystore
+app/src/main/cpp/llama.cpp/
+.cxx/

@@ -25,6 +25,7 @@ class SettingsStore(ctx: Context) {
         .put("max_tokens", 2048)         // የመልስ ከፍተኛ ርዝመት / max reply tokens
         .put("temperature", 0.45)        // 0.4-0.5 ነባሪ / default
         .put("resp_len", "long")         // short | long
+        .put("active_model", "")
 
     @Synchronized
     private fun load() {
@@ -47,6 +48,7 @@ class SettingsStore(ctx: Context) {
         data.put("gemini_key", data.optString("gemini_key").filter { it.isLetterOrDigit() || it == '_' || it == '-' || it == '.' }.take(200))
         data.put("max_tokens", data.optInt("max_tokens", 2048).coerceIn(256, 8192))
         data.put("temperature", data.optDouble("temperature", 0.45).let { if (it.isNaN()) 0.45 else it }.coerceIn(0.0, 1.0))
+        data.put("active_model", data.optString("active_model").takeIf { !it.contains('/') && !it.contains('\\') } ?: "")
         if (data.optString("resp_len") !in listOf("short", "long")) data.put("resp_len", "long")
     }
 

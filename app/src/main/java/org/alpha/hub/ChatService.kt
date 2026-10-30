@@ -14,7 +14,7 @@ import org.json.JSONObject
  * Chat session: history, live streamed reply, continue and stop.
  * መልሱ እየተመነጨ ያለው ጽሁፍ ወዲያው በ [Job.text] ውስጥ ይከማቻል፤ UI በፍጥነት ይጠይቃል (poll)።
  */
-class ChatService(private val ctx: Context, private val settings: SettingsStore, private val msg: (String) -> String) {
+class ChatService(private val ctx: Context, private val settings: SettingsStore, private val engine: OfflineEngine, private val models: ModelManager, private val msg: (String) -> String) {
     class Msg(val role: String, var content: String, var error: Boolean = false)
 
     /** አንድ የመልስ ሥራ / one reply job */
@@ -117,8 +117,12 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         val base = if (continuation) target.content else ""
         j.text = base
         job = j
-        if (key.isEmpty() || !settings.getBool("online_mode")) {
-            fail(j, target, if (key.isEmpty()) "online_need_key" else "no_active_model_hint", continuation, userText)
+        if (!settings.getBool("online_mode")) {
+            runOffline(j, target, base, continuation, userText)
+            return JSONObject().put("job_id", j.id)
+        }
+        if (key.isEmpty()) {
+            fail(j, target, "online_need_key", continuation, userText)
             return JSONObject().put("job_id", j.id)
         }
         val contents = buildContents(continuation)
@@ -153,6 +157,66 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
             }
         }.start()
         return JSONObject().put("job_id", j.id)
+    }
+
+    private fun runOffline(j: Job, target: Msg, base: String, continuation: Boolean, userText: String) {
+        val file = models.activeFile()
+        if (file == null) { fail(j, target, if (engine.supported) "no_active_model_hint" else "offline_unavailable", continuation, userText); return }
+        val temp = settings.getDouble("temperature").toFloat()
+        val cfgMax = settings.getInt("max_tokens")
+        Thread {
+            try {
+                engine.load(file)
+                val maxTok = minOf(cfgMax, (engine.nCtx / 2).coerceAtLeast(128))
+                val filter = ThinkFilter()
+                val sink = TokenSink { piece ->
+                    val add = filter.feed(piece)
+                    if (add.isNotEmpty()) { j.text += add; target.content = j.text; j.last = System.currentTimeMillis() }
+                    !j.cancelled
+                }
+                var budget = engine.nCtx - maxTok - 250
+                var rc = -2
+                var tries = 0
+                while (rc == -2 && tries < 3) {
+                    val (roles, contents) = buildOffline(continuation, budget, file.name)
+                    rc = engine.generate(roles, contents, maxTok, temp, sink)
+                    budget /= 2; tries++
+                }
+                synchronized(this) {
+                    when {
+                        j.cancelled || rc == 1 -> { j.finish = "STOPPED"; j.status = "done" }
+                        j.text.length == base.length -> fail(j, target, if (rc < 0) "err_server" else "ai_empty", continuation, userText)
+                        rc < 0 -> { j.finish = "NETWORK"; j.error = msg("err_server"); j.status = "done" }
+                        else -> { j.finish = if (rc == 2) "MAX_TOKENS" else "STOP"; j.status = "done" }
+                    }
+                    if (j.status == "done") persist()
+                }
+            } catch (e: OfflineError) {
+                synchronized(this) { fail(j, target, e.key, continuation, userText, e.detail); j.error = offlineMessage(e, msg) }
+            } catch (e: Throwable) {
+                synchronized(this) { fail(j, target, "err_server", continuation, userText, e.javaClass.simpleName) }
+            }
+        }.start()
+    }
+
+    private fun buildOffline(continuation: Boolean, budget: Int, modelName: String): Pair<List<String>, List<String>> {
+        val usable = if (continuation) history.toList() else history.dropLast(1)
+        val picked = ArrayList<Msg>(); var tokens = 0
+        for (m in usable.asReversed()) {
+            if (m.error || m.content.isEmpty()) continue
+            tokens += estimate(m.content) + 6
+            if (tokens > budget && picked.isNotEmpty()) break
+            picked.add(m)
+        }
+        picked.reverse()
+        while (picked.isNotEmpty() && picked.first().role != "user") picked.removeAt(0)
+        val roles = ArrayList<String>(); val contents = ArrayList<String>()
+        var sys = systemPrompt() + " Reply in English."
+        if (modelName.contains("qwen3", true)) sys += " /no_think"
+        roles.add("system"); contents.add(sys)
+        for (m in picked) { roles.add(if (m.role == "user") "user" else "assistant"); contents.add(m.content) }
+        if (continuation) { roles.add("user"); contents.add("Continue exactly from where you stopped. Do not repeat anything.") }
+        return Pair(roles, contents)
     }
 
     /** ምንም መልስ ሳይመጣ ሲከሽፍ: ባዶውን መልእክት ያስወግዳል፣ ጥያቄው ወደ ግብዓት ይመለሳል */

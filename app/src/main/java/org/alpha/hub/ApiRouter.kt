@@ -33,7 +33,9 @@ class ApiRouter(private val ctx: Context) {
     }
     private val catalogCache = HashMap<String, List<LibGroup>>()
     // የ AI ውይይት (Gemini ቀጥታ መልስ) / AI chat with live Gemini streaming
-    private val chat = ChatService(ctx, settings) { msg(it) }
+    private val engine = OfflineEngine(ctx)
+    private val models = ModelManager(ctx, settings, engine) { msg(it) }
+    private val chat = ChatService(ctx, settings, engine, models) { msg(it) }
     private val study = StudyService(ctx, settings) { msg(it) }
 
     fun handle(method: String, fullPath: String, body: JSONObject): Pair<Int, JSONObject> {
@@ -70,7 +72,7 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/library/delete" -> libraryDelete(b)
         // ---- AI ውይይት
         "POST /api/ai/enter" -> aiEnter()
-        "POST /api/ai/leave" -> JSONObject().put("ok", true)   // ኦንላይን ሞዴል RAM አይጠቀምም / online uses no RAM
+        "POST /api/ai/leave" -> { chat.stop(); engine.unload(); JSONObject().put("ok", true) }
         "POST /api/ai/test" -> chat.test()
         "GET /api/chat" -> chat.view()
         "POST /api/chat/send" -> chat.send(b.optString("text"))
@@ -93,7 +95,12 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/notes/delete" -> study.noteDelete(b)
         "GET /api/progress" -> study.progress()
         "POST /api/progress/reset" -> study.progressReset()
-        "GET /api/models" -> JSONObject().put("settings", settingsView()).put("downloaded", JSONArray()).put("public", JSONArray())
+        "GET /api/models" -> models.list().put("settings", settingsView()).put("download", downloader.snapshot())
+        "POST /api/models/download" -> modelDownload(b)
+        "POST /api/models/activate" -> { models.activate(b.optString("name")); JSONObject().put("settings", settingsView()) }
+        "POST /api/models/deactivate" -> { models.deactivate(); JSONObject().put("settings", settingsView()) }
+        "POST /api/models/delete" -> { models.delete(b.optString("name")); JSONObject().put("settings", settingsView()) }
+        "POST /api/sync" -> study.runJob { JSONObject() }
         // ገና ያልተሰሩ ክፍሎች / not yet ported
         else -> throw ApiError(501, "err_not_ready")
     }
@@ -113,7 +120,7 @@ class ApiRouter(private val ctx: Context) {
             .put("online_mode", settings.getBool("online_mode"))
             .put("appearance", settings.getString("appearance"))
             .put("language", settings.getString("language"))
-            .put("active_model", JSONObject.NULL)
+            .put("active_model", models.activeView())
             // ቁልፉ ወደ UI አይመለስም፤ መኖሩና የመጨረሻ 4 ቁምፊ ብቻ / the key itself never goes back to the UI
             .put("gemini_key_set", settings.getString("gemini_key").isNotEmpty())
             .put("gemini_key_tail", settings.getString("gemini_key").takeLast(4))
@@ -123,10 +130,18 @@ class ApiRouter(private val ctx: Context) {
     }
 
     private fun aiEnter(): JSONObject {
-        // ኦንላይን: ሞዴል መጫን አያስፈልግም / online: nothing to preload
         if (settings.getBool("online_mode")) return JSONObject().put("mode", "online").put("ready", true).put("locked", false)
-        // ኦፍላይን AI ገና አልተሰራም (llama.cpp በኋላ) / offline AI comes later with llama.cpp
-        return JSONObject().put("mode", "offline").put("ready", false).put("message", msg("offline_soon"))
+        val off = JSONObject().put("mode", "offline").put("ready", false)
+        if (!engine.supported) return off.put("message", msg("offline_unavailable"))
+        val f = models.activeFile() ?: return off.put("message", msg("no_active_model_hint"))
+        if (engine.isLoaded(f.path)) return off.put("ready", true).put("locked", false)
+        return off.put("job_id", study.runJob { engine.load(f); JSONObject() }.getString("job_id"))
+    }
+
+    private fun modelDownload(b: JSONObject): JSONObject {
+        val e = models.entry(b.optString("filename")) ?: throw ApiError(404, "err_not_found")
+        if (!downloader.start(e.url, File(models.dir, e.filename), e.filename, models.cleanTitle(e.filename), "public")) throw ApiError(409, "dl_busy")
+        return JSONObject().put("ok", true)
     }
 
     private fun chatSave(): JSONObject {

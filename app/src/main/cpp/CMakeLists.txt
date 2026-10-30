@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(alphallm LANGUAGES C CXX)
+
+set(CMAKE_BUILD_TYPE Release)
+set(BUILD_SHARED_LIBS OFF)
+set(GGML_OPENMP OFF CACHE BOOL "" FORCE)
+set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+set(GGML_LLAMAFILE OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_COMMON OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_APP OFF CACHE BOOL "" FORCE)
+set(LLAMA_BUILD_UI OFF CACHE BOOL "" FORCE)
+set(LLAMA_CURL OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(llama.cpp ${CMAKE_BINARY_DIR}/llama_build)
+
+add_library(alphallm SHARED alpha_llm.cpp)
+target_include_directories(alphallm PRIVATE llama.cpp/include llama.cpp/ggml/include)
+target_link_libraries(alphallm PRIVATE llama ggml log android)
+target_compile_options(alphallm PRIVATE -O3)
