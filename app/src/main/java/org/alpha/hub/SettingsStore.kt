@@ -26,6 +26,8 @@ class SettingsStore(ctx: Context) {
         .put("temperature", 0.45)        // 0.4-0.5 ነባሪ / default
         .put("resp_len", "long")         // short | long
         .put("active_model", "")
+        .put("provider", "gemini")
+        .put("provider_cfg", JSONObject())
 
     @Synchronized
     private fun load() {
@@ -49,6 +51,8 @@ class SettingsStore(ctx: Context) {
         data.put("max_tokens", data.optInt("max_tokens", 2048).coerceIn(256, 8192))
         data.put("temperature", data.optDouble("temperature", 0.45).let { if (it.isNaN()) 0.45 else it }.coerceIn(0.0, 1.0))
         data.put("active_model", data.optString("active_model").takeIf { !it.contains('/') && !it.contains('\\') } ?: "")
+        if (data.optString("provider").isEmpty()) data.put("provider", "gemini")
+        if (data.optJSONObject("provider_cfg") == null) data.put("provider_cfg", JSONObject())
         if (data.optString("resp_len") !in listOf("short", "long")) data.put("resp_len", "long")
     }
 
@@ -63,6 +67,7 @@ class SettingsStore(ctx: Context) {
 
     @Synchronized fun getString(key: String): String = data.optString(key)
     @Synchronized fun getBool(key: String): Boolean = data.optBoolean(key)
+    @Synchronized fun getJson(key: String): JSONObject = JSONObject(data.optJSONObject(key)?.toString() ?: "{}")
     @Synchronized fun getInt(key: String): Int = data.optInt(key)
     @Synchronized fun getDouble(key: String): Double = data.optDouble(key)
 

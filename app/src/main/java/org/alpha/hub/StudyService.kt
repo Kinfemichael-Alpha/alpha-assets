@@ -11,10 +11,9 @@ import java.util.concurrent.ConcurrentHashMap
 import org.json.JSONArray
 import org.json.JSONObject
 
-class StudyService(ctx: Context, private val settings: SettingsStore, private val msg: (String) -> String) {
+class StudyService(ctx: Context, private val settings: SettingsStore, private val llm: LlmService, private val msg: (String) -> String) {
     class JobState { @Volatile var state = "running"; @Volatile var result: JSONObject? = null; @Volatile var error = "" }
 
-    private val client = GeminiClient()
     private val jobs = ConcurrentHashMap<String, JobState>()
     private val quizFile = File(ctx.filesDir, "quizzes.json")
     private val noteFile = File(ctx.filesDir, "notes.json")
@@ -51,16 +50,15 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
     }
 
     private fun requireKey(): String {
-        val k = settings.getString("gemini_key")
-        if (k.isEmpty()) throw ApiError(400, "online_need_key")
         if (!settings.getBool("online_mode")) throw ApiError(400, "offline_soon")
-        return k
+        if (!llm.configured()) throw ApiError(400, "online_need_key")
+        return "ok"
     }
 
     private fun ask(key: String, system: String, user: String, maxTokens: Int, temperature: Double, json: Boolean): String {
         val contents = JSONArray().put(JSONObject().put("role", "user").put("parts", JSONArray().put(JSONObject().put("text", user))))
         val sb = StringBuilder()
-        client.stream(key, system, contents, maxTokens, temperature, json, { false }) { sb.append(it) }
+        llm.stream(system, contents, maxTokens, temperature, json, { false }) { sb.append(it) }
         return sb.toString()
     }
 

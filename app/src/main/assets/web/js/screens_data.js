@@ -30,6 +30,7 @@
     let data = null;
     const secTheme = h('div', { class: 'card' });
     const secLang = h('div', { class: 'card' });
+    const secProv = h('div', { class: 'card stack' });
     const secAi = h('div', { class: 'card stack' });
     const secModels = h('div', { class: 'card' });
     const secPublic = h('div', { class: 'card' });
@@ -85,6 +86,59 @@
         h('button', { class: 'btn sm', type: 'button', onclick: () => A.setLang(A.S.lang === 'AM' ? 'EN' : 'AM') }, t('lang_btn'))));
     }
 
+    let providers = null, modelList = [];
+    async function drawProv() {
+      if (!providers) { try { providers = (await A.get('/api/providers')).providers; } catch (e) { return; } }
+      const cur = providers.find((p) => p.active) || providers[0];
+      const refresh = async (r) => { providers = r.providers; if (r.settings) A.S.state.settings = r.settings; drawProv(); drawAi(); };
+      const sel = h('select', { class: 'inp', 'aria-label': t('set_provider') });
+      providers.forEach((p) => sel.append(h('option', { value: p.id, selected: p.id === cur.id }, p.name + (p.key_set ? '  \u2713' : ''))));
+      sel.addEventListener('change', async () => { modelList = []; try { await refresh(await A.post('/api/provider/select', { id: sel.value })); } catch (e) { A.info(e.message); } });
+      const keyInp = h('input', { class: 'inp', type: 'password', autocomplete: 'off', spellcheck: 'false', placeholder: t('key_ph'), 'aria-label': t('set_api_key') });
+      const keySave = h('button', { class: 'btn sm', type: 'button' }, t('btn_save'));
+      keySave.addEventListener('click', async () => {
+        if (!keyInp.value.trim()) return;
+        try { await refresh(await A.post('/api/provider/save', { id: cur.id, key: keyInp.value.trim() })); A.toast(t('key_saved')); } catch (e) { A.info(e.message); }
+      });
+      const test = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_test_key'));
+      test.addEventListener('click', async () => {
+        test.disabled = true;
+        try { await A.post('/api/ai/test'); A.toast(t('key_works')); } catch (e) { A.info(e.message); }
+        test.disabled = false;
+      });
+      const clear = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_clear'));
+      clear.addEventListener('click', async () => {
+        if (!(await A.confirm(t('confirm_delete_book', { name: cur.name })))) return;
+        try { await refresh(await A.post('/api/provider/save', { id: cur.id, key: '' })); A.toast(t('key_cleared')); } catch (e) { A.info(e.message); }
+      });
+      const rows = [
+        h('div', { class: 'h-sec' }, t('set_provider')), sel,
+        h('div', { class: 'muted small' }, cur.key_set ? t('key_set_tail', { tail: cur.key_tail }) : t('key_not_set')),
+        h('div', { class: 'row' }, h('div', { class: 'grow' }, keyInp), keySave),
+      ];
+      if (cur.editable_url) {
+        const url = h('input', { class: 'inp', type: 'url', value: cur.base_url || '', placeholder: 'https://.../v1', 'aria-label': t('set_base_url') });
+        const us = h('button', { class: 'btn sm', type: 'button' }, t('btn_save'));
+        us.addEventListener('click', async () => { try { await refresh(await A.post('/api/provider/save', { id: cur.id, base_url: url.value.trim() })); A.toast(t('key_saved')); } catch (e) { A.info(e.message); } });
+        rows.push(h('div', { class: 'h-sec' }, t('set_base_url')), h('div', { class: 'row' }, h('div', { class: 'grow' }, url), us));
+      }
+      if (cur.type !== 'gemini') {
+        const dl = h('datalist', { id: 'model-list' });
+        modelList.forEach((m) => dl.append(h('option', { value: m })));
+        const mi = h('input', { class: 'inp', type: 'text', list: 'model-list', value: cur.model || '', placeholder: t('model_auto'), 'aria-label': t('set_model') });
+        const ms = h('button', { class: 'btn sm', type: 'button' }, t('btn_save'));
+        ms.addEventListener('click', async () => { try { await refresh(await A.post('/api/provider/save', { id: cur.id, model: mi.value.trim() })); A.toast(t('key_saved')); } catch (e) { A.info(e.message); } });
+        const ld = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_load_models'));
+        ld.addEventListener('click', async () => {
+          ld.disabled = true;
+          try { modelList = (await A.post('/api/provider/models', { id: cur.id })).models; A.toast(t('models_loaded', { n: modelList.length })); drawProv(); } catch (e) { A.info(e.message); ld.disabled = false; }
+        });
+        rows.push(h('div', { class: 'h-sec' }, t('set_model')), h('div', { class: 'row' }, h('div', { class: 'grow' }, mi), ms), dl, ld);
+      }
+      rows.push(h('div', { class: 'muted small' }, t('set_provider_hint') + (cur.hint ? '  ' + cur.hint : '')), h('div', { class: 'row' }, h('div', { class: 'grow' }, test), cur.key_set ? clear : null));
+      A.clear(secProv).append(...rows.filter(Boolean));
+    }
+
     /* ----- 3. Online / Offline AI */
     function statusText() {
       const s = A.S.state.settings;
@@ -109,18 +163,6 @@
         } catch (e) { A.info(e.message); }
         drawAi();
       };
-      const keyInp = h('input', { class: 'inp', type: 'password', autocomplete: 'off', spellcheck: 'false', placeholder: t('key_ph'), 'aria-label': t('set_gemini_key') });
-      const keySave = h('button', { class: 'btn sm', type: 'button' }, t('btn_save'));
-      keySave.addEventListener('click', () => { if (keyInp.value.trim()) save({ gemini_key: keyInp.value.trim() }, t('key_saved')); });
-      const keyClear = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_clear'));
-      keyClear.addEventListener('click', async () => { if (await A.confirm(t('confirm_delete_book', { name: t('set_gemini_key') }))) save({ gemini_key: '' }, t('key_cleared')); });
-      const keyRow = h('div', { class: 'row' }, h('div', { class: 'grow' }, keyInp), keySave);
-      const testBtn = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_test_key'));
-      testBtn.addEventListener('click', async () => {
-        testBtn.disabled = true;
-        try { await A.post('/api/ai/test'); A.toast(t('key_works')); } catch (e) { A.info(e.message); }
-        testBtn.disabled = false;
-      });
       const tokVal = h('b', null, String(s.max_tokens));
       const tok = h('input', { type: 'range', min: '512', max: '8192', step: '256', value: String(s.max_tokens), 'aria-label': t('set_max_tokens') });
       tok.addEventListener('input', () => { tokVal.textContent = tok.value; });
@@ -138,11 +180,6 @@
       A.clear(secAi).append(
         h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('set_ai_mode')), h('label', { class: 'sw' }, cb, h('i'))),
         h('div', { class: 'h-sec' }, A.mq(statusText())),
-        h('div', { class: 'h-sec' }, t('set_gemini_key')),
-        h('div', { class: 'muted small' }, s.gemini_key_set ? t('key_set_tail', { tail: s.gemini_key_tail }) : t('key_not_set')),
-        keyRow,
-        s.gemini_key_set ? h('div', { class: 'row' }, h('div', { class: 'grow' }, testBtn), keyClear) : null,
-        h('div', { class: 'muted small' }, t('set_gemini_hint')),
         h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('set_max_tokens')), tokVal), tok,
         h('div', { class: 'muted small' }, t('set_max_tokens_hint')),
         h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('set_temperature')), tmpVal), tmp, tmpWarn,
@@ -247,7 +284,7 @@
     async function load() {
       try { data = await A.get('/api/models'); } catch (e) { return A.info(e.message); }
       A.S.state.settings = data.settings;
-      drawAi(); drawModels(); drawPublic();
+      drawAi(); drawModels(); drawPublic(); drawProv();
     }
 
     /* የማውረድ ሁኔታ ሲቀየር: ተጠናቀቀ -> ዝርዝር ያድሳል */
@@ -275,8 +312,8 @@
 
     const el = A.page(
       A.bar({ title: t('settings_title') }),
-      h('div', { class: 'scroll ruled stack' }, secTheme, secLang, secProfile, secAi, panel.el, secModels, secPublic, resetBtn));
-    drawTheme(); drawLang(); drawProfile(); drawAi();
+      h('div', { class: 'scroll ruled stack' }, secTheme, secLang, secProfile, secProv, secAi, panel.el, secModels, secPublic, resetBtn));
+    drawTheme(); drawLang(); drawProfile(); drawAi(); drawProv();
 
     return {
       el,

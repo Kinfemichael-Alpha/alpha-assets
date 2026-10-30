@@ -35,8 +35,9 @@ class ApiRouter(private val ctx: Context) {
     // የ AI ውይይት (Gemini ቀጥታ መልስ) / AI chat with live Gemini streaming
     private val engine = OfflineEngine(ctx)
     private val models = ModelManager(ctx, settings, engine) { msg(it) }
-    private val chat = ChatService(ctx, settings, engine, models) { msg(it) }
-    private val study = StudyService(ctx, settings) { msg(it) }
+    private val llm = LlmService(ctx, settings)
+    private val chat = ChatService(ctx, settings, llm, engine, models) { msg(it) }
+    private val study = StudyService(ctx, settings, llm) { msg(it) }
 
     fun handle(method: String, fullPath: String, body: JSONObject): Pair<Int, JSONObject> {
         val path = fullPath.substringBefore('?')
@@ -73,6 +74,10 @@ class ApiRouter(private val ctx: Context) {
         // ---- AI ውይይት
         "POST /api/ai/enter" -> aiEnter()
         "POST /api/ai/leave" -> { chat.stop(); engine.unload(); JSONObject().put("ok", true) }
+        "GET /api/providers" -> JSONObject().put("providers", llm.providers())
+        "POST /api/provider/save" -> { llm.save(b); JSONObject().put("providers", llm.providers()).put("settings", settingsView()) }
+        "POST /api/provider/select" -> { llm.select(b.optString("id")); JSONObject().put("providers", llm.providers()).put("settings", settingsView()) }
+        "POST /api/provider/models" -> providerModels(b)
         "POST /api/ai/test" -> chat.test()
         "GET /api/chat" -> chat.view()
         "POST /api/chat/send" -> chat.send(b.optString("text"))
@@ -123,11 +128,17 @@ class ApiRouter(private val ctx: Context) {
             .put("language", settings.getString("language"))
             .put("active_model", models.activeView())
             // ቁልፉ ወደ UI አይመለስም፤ መኖሩና የመጨረሻ 4 ቁምፊ ብቻ / the key itself never goes back to the UI
-            .put("gemini_key_set", settings.getString("gemini_key").isNotEmpty())
+            .put("provider", llm.activeId())
+            .put("gemini_key_set", llm.configured())
             .put("gemini_key_tail", settings.getString("gemini_key").takeLast(4))
             .put("max_tokens", settings.getInt("max_tokens"))
             .put("temperature", settings.getDouble("temperature"))
             .put("resp_len", settings.getString("resp_len"))
+    }
+
+    private fun providerModels(b: JSONObject): JSONObject {
+        try { return JSONObject().put("models", JSONArray(llm.listModels(b.optString("id")))) }
+        catch (e: GeminiError) { throw ApiError(502, e.key).also { chat.lastDetail = e.technical } }
     }
 
     private fun aiEnter(): JSONObject {

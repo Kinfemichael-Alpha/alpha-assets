@@ -1,0 +1,11 @@
+[
+ {"id":"gemini","name":"Google Gemini","type":"gemini","base_url":"","hint":"aistudio.google.com"},
+ {"id":"openai","name":"OpenAI","type":"openai","base_url":"https://api.openai.com/v1","hint":"platform.openai.com"},
+ {"id":"anthropic","name":"Anthropic Claude","type":"anthropic","base_url":"https://api.anthropic.com","hint":"console.anthropic.com"},
+ {"id":"groq","name":"Groq","type":"openai","base_url":"https://api.groq.com/openai/v1","hint":"console.groq.com"},
+ {"id":"openrouter","name":"OpenRouter","type":"openai","base_url":"https://openrouter.ai/api/v1","hint":"openrouter.ai"},
+ {"id":"mistral","name":"Mistral","type":"openai","base_url":"https://api.mistral.ai/v1","hint":"console.mistral.ai"},
+ {"id":"deepseek","name":"DeepSeek","type":"openai","base_url":"https://api.deepseek.com/v1","hint":"platform.deepseek.com"},
+ {"id":"together","name":"Together AI","type":"openai","base_url":"https://api.together.xyz/v1","hint":"api.together.ai"},
+ {"id":"custom","name":"Custom (OpenAI-compatible)","type":"openai","base_url":"","editable_url":true,"hint":""}
+]

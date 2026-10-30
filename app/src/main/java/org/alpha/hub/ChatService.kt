@@ -14,7 +14,7 @@ import org.json.JSONObject
  * Chat session: history, live streamed reply, continue and stop.
  * መልሱ እየተመነጨ ያለው ጽሁፍ ወዲያው በ [Job.text] ውስጥ ይከማቻል፤ UI በፍጥነት ይጠይቃል (poll)።
  */
-class ChatService(private val ctx: Context, private val settings: SettingsStore, private val engine: OfflineEngine, private val models: ModelManager, private val msg: (String) -> String) {
+class ChatService(private val ctx: Context, private val settings: SettingsStore, private val llm: LlmService, private val engine: OfflineEngine, private val models: ModelManager, private val msg: (String) -> String) {
     class Msg(val role: String, var content: String, var error: Boolean = false)
 
     /** አንድ የመልስ ሥራ / one reply job */
@@ -29,7 +29,6 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         @Volatile var restore = ""         // መልስ ሳይመጣ ከተሳሰ ጥያቄው ወደ ግብዓት ይመለሳል
     }
 
-    private val client = GeminiClient()
     private val history = ArrayList<Msg>()
     private var job: Job? = null
     private val file = File(ctx.filesDir, "chat_current.json")
@@ -75,14 +74,13 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
     }
 
     fun test(): JSONObject {
-        val key = settings.getString("gemini_key")
-        if (key.isEmpty()) throw ApiError(400, "online_need_key")
-        try { return JSONObject().put("ok", true).put("model", client.probe(key)) }
+        if (!llm.configured()) throw ApiError(400, "online_need_key")
+        try { return JSONObject().put("ok", true).put("model", llm.probe()) }
         catch (e: GeminiError) { throw ApiError(502, e.key).also { lastDetail = e.technical } }
     }
     @Volatile var lastDetail = ""
 
-    @Synchronized fun stop() { job?.let { it.cancelled = true; client.abort() } }
+    @Synchronized fun stop() { job?.let { it.cancelled = true; llm.abort() } }
 
     /** ውይይቱን ወደ ፋይል ያስቀምጣል (በስልኩ ላይ ብቻ) / save chat locally */
     @Synchronized fun save(): JSONObject {
@@ -111,7 +109,6 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
     }
 
     private fun startJob(continuation: Boolean, userText: String): JSONObject {
-        val key = settings.getString("gemini_key")
         val j = Job(UUID.randomUUID().toString())
         val target = history.last()                      // መልሱ የሚጻፍበት የ AI መልእክት
         val base = if (continuation) target.content else ""
@@ -121,7 +118,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
             runOffline(j, target, base, continuation, userText)
             return JSONObject().put("job_id", j.id)
         }
-        if (key.isEmpty()) {
+        if (!llm.configured()) {
             fail(j, target, "online_need_key", continuation, userText)
             return JSONObject().put("job_id", j.id)
         }
@@ -131,7 +128,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         val temp = settings.getDouble("temperature")
         Thread {
             try {
-                val r = client.stream(key, system, contents, maxTokens, temp, false, { j.cancelled }) { piece ->
+                val r = llm.stream(system, contents, maxTokens, temp, false, { j.cancelled }) { piece ->
                     j.text += piece; target.content = j.text; j.last = System.currentTimeMillis()    // ወዲያው ለ UI ይገኛል / visible to UI immediately
                 }
                 synchronized(this) {
@@ -264,7 +261,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         val j = job
         if (j == null || j.id != id) throw ApiError(404, "err_not_found")
         if (j.status == "running" && System.currentTimeMillis() - j.last > 90000) {
-            j.cancelled = true; client.abort()
+            j.cancelled = true; llm.abort()
             if (j.text.isEmpty()) { history.lastOrNull()?.let { if (it.role == "assistant" && it.content.isEmpty()) history.remove(it) }; j.error = msg("online_unreachable"); j.status = "error" }
             else { j.finish = "NETWORK"; j.error = msg("online_unreachable"); j.status = "done" }
             persist()
