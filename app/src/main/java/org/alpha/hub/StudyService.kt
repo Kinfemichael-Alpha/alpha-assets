@@ -12,7 +12,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class StudyService(ctx: Context, private val settings: SettingsStore, private val msg: (String) -> String) {
-    private class JobState { @Volatile var state = "running"; @Volatile var result: JSONObject? = null; @Volatile var error = "" }
+    class JobState { @Volatile var state = "running"; @Volatile var result: JSONObject? = null; @Volatile var error = "" }
 
     private val client = GeminiClient()
     private val jobs = ConcurrentHashMap<String, JobState>()
