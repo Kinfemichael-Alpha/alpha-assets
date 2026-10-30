@@ -21,7 +21,13 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Build debug APK
-        run: gradle :app:assembleDebug --no-daemon
+        run: |
+          set -o pipefail
+          gradle :app:assembleDebug --no-daemon 2>&1 | tee build.log
+      - name: Report errors
+        if: failure()
+        run: |
+          grep -E "error:|e: |FAILED|What went wrong|CMake Error|ninja: |fatal|undefined reference|Execution failed|Could not" build.log | head -25 | cut -c1-400 | while IFS= read -r l; do echo "::error::$l"; done
       - uses: actions/upload-artifact@v4
         with:
           name: alpha-ai-debug-apk
