@@ -331,7 +331,7 @@ class ApiRouter(private val ctx: Context) {
             val es = JSONArray()
             for (e in g.entries) es.put(JSONObject().put("filename", e.filename).put("title", e.title)
                 .put("size_mb", JSONObject.NULL).put("downloaded", e.filename in haveNames))
-            cat.put(JSONObject().put("group", g.group).put("entries", es))
+            cat.put(JSONObject().put("group", g.group).put("top", g.top).put("subject", g.subject).put("entries", es))
         }
         return JSONObject().put("kind", kind).put("downloaded", dl).put("catalog", cat).put("download", downloader.snapshot())
     }

@@ -371,6 +371,53 @@
       return h('div', { class: 'item' },
         h('div', { class: 'grow' }, A.mq(e.title), e.size_mb ? h('div', { class: 'muted small' }, A.fmtSize(e.size_mb)) : null), right);
     }
+    let nav = { top: null, subject: null }, query = '';
+    const countOf = (gs) => gs.reduce((n, g) => n + g.entries.length, 0);
+    const navRow = (label, sub, onTap) => {
+      const r = h('button', { class: 'item nav-row', type: 'button' },
+        h('div', { class: 'grow' }, A.mq(label), sub ? h('div', { class: 'muted small' }, sub) : null), A.icon('back'));
+      r.addEventListener('click', onTap);
+      return r;
+    };
+    function drawBrowse() {
+      const groups = data.catalog;
+      const card = h('div', { class: 'card' });
+      const search = h('input', { class: 'inp', type: 'search', value: query, placeholder: t('lib_search'), 'aria-label': t('lib_search') });
+      search.addEventListener('input', () => {
+        query = search.value;
+        const pos = search.selectionStart;
+        drawBrowse();
+        const again = body.querySelector('input[type=search]');
+        if (again) { again.focus(); try { again.setSelectionRange(pos, pos); } catch (e) { /* ignore */ } }
+      });
+      card.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, search), refreshBtn));
+      if (!groups.length) { card.append(h('p', { class: 'muted' }, noneCat)); A.clear(body).append(card); return; }
+      const q = query.trim().toLowerCase();
+      if (q) {
+        let any = false;
+        groups.forEach((g) => {
+          const es = g.entries.filter((e) => (e.title + ' ' + g.group).toLowerCase().includes(q));
+          if (!es.length) return;
+          any = true;
+          card.append(h('div', { class: 'h-sec' }, g.group));
+          es.forEach((e) => card.append(rowCat(e)));
+        });
+        if (!any) card.append(h('p', { class: 'muted' }, t('lib_no_results')));
+      } else if (nav.top === null) {
+        const tops = [];
+        groups.forEach((g) => { let x = tops.find((y) => y.name === g.top); if (!x) { x = { name: g.top, gs: [] }; tops.push(x); } x.gs.push(g); });
+        tops.forEach((x) => card.append(navRow(x.name, t('lib_count', { n: countOf(x.gs) }), () => { nav = { top: x.name, subject: null }; drawBrowse(); })));
+      } else {
+        const back = h('button', { class: 'btn sm ghost', type: 'button' }, nav.subject === null ? t('lib_all') : nav.top);
+        back.addEventListener('click', () => { nav = nav.subject === null ? { top: null, subject: null } : { top: nav.top, subject: null }; drawBrowse(); });
+        card.append(h('div', { class: 'row' }, back, h('div', { class: 'grow h-sec' }, A.mq(nav.subject === null ? nav.top : nav.subject))));
+        const gs = groups.filter((g) => g.top === nav.top);
+        if (nav.subject === null) gs.forEach((g) => card.append(navRow(g.subject, t('lib_count', { n: g.entries.length }), () => { nav = { top: nav.top, subject: g.subject }; drawBrowse(); })));
+        else gs.filter((g) => g.subject === nav.subject).forEach((g) => g.entries.forEach((e) => card.append(rowCat(e))));
+      }
+      A.clear(body).append(card);
+      A.scheduleMarquees();
+    }
     function draw() {
       A.clear(body);
       if (!data) return;
@@ -380,13 +427,7 @@
         data.downloaded.forEach((f) => card.append(rowHave(f)));
         body.append(card);
       } else {
-        const card = h('div', { class: 'card' }, h('div', { class: 'row' }, h('div', { class: 'grow' }), refreshBtn));
-        if (!data.catalog.length) card.append(h('p', { class: 'muted' }, noneCat));
-        data.catalog.forEach((g) => {
-          card.append(h('div', { class: 'h-sec' }, g.group));
-          g.entries.forEach((e) => card.append(rowCat(e)));
-        });
-        body.append(card);
+        drawBrowse();
       }
       A.scheduleMarquees();
     }

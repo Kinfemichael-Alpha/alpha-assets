@@ -6,7 +6,7 @@ import org.json.JSONObject
 /** መጻሕፍት / ፈተናዎች ዝርዝር ንጥል / one downloadable file */
 data class LibEntry(val filename: String, val title: String, val url: String)
 /** ቡድን (ምድብ) / a group (category) */
-data class LibGroup(val group: String, val entries: List<LibEntry>)
+data class LibGroup(val group: String, val entries: List<LibEntry>, val top: String = "", val subject: String = "")
 
 /**
  * ከ assets (books.json / exams.json) ዝርዝሩን ያነባል እና ወደ UI ቅርጽ (ቡድን -> ፋይሎች) ያጠፍጣል።
@@ -51,7 +51,7 @@ object LibraryCatalog {
                         entries.add(LibEntry(unique(safe("$top - $subject - $label")), title, node.getString(label)))
                     }
                 }
-                if (entries.isNotEmpty()) groups.add(LibGroup("$top  |  $subject", entries))
+                if (entries.isNotEmpty()) groups.add(LibGroup("$top  |  $subject", entries, top, subject))
             }
         }
         return groups

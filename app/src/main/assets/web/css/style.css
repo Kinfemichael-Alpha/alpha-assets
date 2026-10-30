@@ -486,3 +486,10 @@ body { background: var(--bg); }
 .card input[type=range] { width: 100%; accent-color: var(--primary); margin: 6px 0 2px; }
 .card .stack-gap > * + * { margin-top: 8px; }
 #secAi > * + * { margin-top: 8px; }
+
+.nav-row { width: 100%; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 12px 0; }
+.nav-row .ico { flex: none; transform: rotate(180deg); opacity: .6; }
+.nav-row:active { background: var(--tint); }
+input[type=search].inp { width: 100%; }
+.nav-row .ico { display: inline-flex; width: 22px; height: 22px; color: var(--primary); opacity: .9; }
+.nav-row .ico svg { width: 22px; height: 22px; }
