@@ -1,6 +1,9 @@
 package org.alpha.hub
 
 import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
+import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -23,8 +26,21 @@ class ApiRouter(private val ctx: Context) {
     private fun msg(key: String): String =
         i18n.optJSONObject(settings.getString("language"))?.optString(key)?.takeIf { it.isNotEmpty() } ?: key
 
+    private val downloader = FileDownloader { e ->
+        // ወዳጃዊ መልእክት: ቴክኒካዊ ጽሁፍ፣ URL ወይም የፋይል ቦታ ለተጠቃሚ አይታይም
+        if (e is java.net.UnknownHostException || e is java.net.SocketTimeoutException || e is java.net.ConnectException)
+            msg("online_no_internet") else msg("dl_failed").replace("{err}", "").trim().trimEnd(':').trim()
+    }
+    private val catalogCache = HashMap<String, List<LibGroup>>()
+
     fun handle(method: String, fullPath: String, body: JSONObject): Pair<Int, JSONObject> {
         val path = fullPath.substringBefore('?')
+        // GET ጥያቄ query (?kind=books) ወደ body ይዋሃዳል / merge query params into body
+        val q = fullPath.substringAfter('?', "")
+        if (q.isNotEmpty()) for (kv in q.split('&')) {
+            val k = java.net.URLDecoder.decode(kv.substringBefore('='), "UTF-8")
+            if (k.isNotEmpty()) body.put(k, java.net.URLDecoder.decode(kv.substringAfter('=', ""), "UTF-8"))
+        }
         return try {
             Pair(200, route(method, path, body))
         } catch (e: ApiError) {
@@ -43,6 +59,12 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/settings/reset" -> { settings.reset(); JSONObject().put("settings", settingsView()) }
         "GET /api/ads/status" -> adsStatus()
         "POST /api/ads/banner" -> JSONObject().put("ok", true)
+        "GET /api/library" -> libraryList(b)
+        "POST /api/library/download" -> libraryDownload(b)
+        "GET /api/download" -> downloader.snapshot()
+        "POST /api/download/cancel" -> { downloader.cancel(); JSONObject().put("ok", true) }
+        "POST /api/library/read" -> libraryRead(b)
+        "POST /api/library/delete" -> libraryDelete(b)
         // ገና ያልተሰሩ ክፍሎች / not yet ported
         else -> throw ApiError(501, "err_not_ready")
     }
@@ -102,6 +124,63 @@ class ApiRouter(private val ctx: Context) {
             settings.set("language", l)
         }
         return JSONObject().put("settings", settingsView())
+    }
+
+    // ---- library (መጻሕፍት + ፈተናዎች)
+    private fun kindOf(b: JSONObject): String {
+        val k = b.optString("kind"); if (k != "books" && k != "exams") throw ApiError(400, "err_bad_request"); return k
+    }
+    private fun libDir(kind: String) = File(ctx.filesDir, kind).apply { mkdirs() }
+    private fun catalog(kind: String) = catalogCache.getOrPut(kind) { LibraryCatalog.load(ctx, kind) }
+    private fun libFile(kind: String, name: String): File {
+        if (!name.endsWith(".pdf") || name.contains('/') || name.contains('\\')) throw ApiError(400, "err_bad_request")
+        return File(libDir(kind), name)
+    }
+
+    private fun libraryList(b: JSONObject): JSONObject {
+        val kind = kindOf(b)
+        val have = libDir(kind).listFiles { f -> f.name.endsWith(".pdf") }?.sortedBy { it.name } ?: emptyList()
+        val haveNames = have.map { it.name }.toSet()
+        val dl = JSONArray()
+        for (f in have) dl.put(JSONObject().put("name", f.name).put("title", f.name.removeSuffix(".pdf"))
+            .put("size_mb", Math.round(f.length() / 104857.6) / 10.0))
+        val cat = JSONArray()
+        for (g in catalog(kind)) {
+            val es = JSONArray()
+            for (e in g.entries) es.put(JSONObject().put("filename", e.filename).put("title", e.title)
+                .put("size_mb", JSONObject.NULL).put("downloaded", e.filename in haveNames))
+            cat.put(JSONObject().put("group", g.group).put("entries", es))
+        }
+        return JSONObject().put("kind", kind).put("downloaded", dl).put("catalog", cat).put("download", downloader.snapshot())
+    }
+
+    private fun libraryDownload(b: JSONObject): JSONObject {
+        val kind = kindOf(b)
+        val fn = b.optString("filename")
+        // URL ከዝርዝሩ ብቻ ይወሰዳል፣ ከ UI አይቀበልም / URL comes only from the catalog, never from the UI
+        val entry = catalog(kind).flatMap { it.entries }.firstOrNull { it.filename == fn } ?: throw ApiError(404, "err_not_found")
+        if (!downloader.start(entry.url, File(libDir(kind), entry.filename), entry.filename, entry.title, kind)) throw ApiError(409, "dl_busy")
+        return JSONObject().put("ok", true)
+    }
+
+    private fun libraryRead(b: JSONObject): JSONObject {
+        val f = libFile(kindOf(b), b.optString("name"))
+        if (!f.exists()) throw ApiError(404, "err_not_found")
+        try {
+            val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".files", f)
+            val i = Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/pdf")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(i)
+        } catch (e: Exception) { throw ApiError(500, "pdf_open_failed") }
+        return JSONObject().put("ok", true)
+    }
+
+    private fun libraryDelete(b: JSONObject): JSONObject {
+        val f = libFile(kindOf(b), b.optString("name"))
+        var removed = false
+        for (x in listOf(f, File(f.path + ".part"))) if (x.exists()) { x.delete(); removed = true }
+        if (!removed) throw ApiError(404, "err_not_found")
+        return JSONObject().put("ok", true)
     }
 
     companion object { const val APP_VERSION = "0.1" }

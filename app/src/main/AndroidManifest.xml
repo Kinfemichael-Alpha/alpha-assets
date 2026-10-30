@@ -9,6 +9,14 @@
         android:icon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Alpha"
         android:usesCleartextTraffic="false">
+        <!-- PDF ፋይሎችን ለ PDF መመልከቻ በደህና ለማጋራት / safe sharing of downloaded PDFs with the viewer app -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
         <activity
             android:name=".MainActivity"
             android:exported="true"

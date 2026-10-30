@@ -1,0 +1,682 @@
+{
+  "Grade 1": {
+    "Amharic": [
+      {
+        "name": "Amharic - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/Amharic/grade%201%20amharic%20old%20curriculum%20%20student%20textbook_kehulum_com_6350.pdf?download=true"
+      },
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/Amharic/grade-1-amharic-new-curriculum--student-textbook-kehulumcom17529957546b04.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/English/grade%201%20English%20For%20Ethiopia%20new%20curriculum%20%20student%20textbook_kehulum_com_d0f0.pdf?download=true"
+      },
+      {
+        "name": "English - Old curriculum (Book 1)",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/English/grade%201%20English%20for%20Ethiopia%20book%201%20old%20curriculum%20%20student%20textbook_kehulum_com_41aa.pdf?download=true"
+      },
+      {
+        "name": "English - Old curriculum (Book 2)",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/English/grade-1-english-for-ethiopia-book-2-old-curriculum--student-textbook-kehulumcom17596481244fdd.pdf?download=true"
+      }
+    ],
+    "Environmental Science": [
+      {
+        "name": "Environmental Science - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/Environmental%20Science/grade%201%20Environmental%20science%20old%20curriculum%20%20student%20textbook_kehulum_com_66be.pdf?download=true"
+      },
+      {
+        "name": "Environmental Science - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/Environmental%20Science/grade-1-environmental-science-new-curriculum--student-textbook-kehulumcom1752997424ee11.pdf?download=true"
+      }
+    ],
+    "Health & Physical Education": [
+      {
+        "name": "Health & Physical Education - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/Physics/grade-1-health-and-physical-education-hpe-new-curriculum--student-textbook-kehulumcom1759654766571c.pdf?download=true"
+      }
+    ],
+    "Mathematics": [
+      {
+        "name": "Mathematics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/Mathematics/grade%201%20mathematics%20new%20curriculum%20%20student%20textbook_kehulum_com_e07f.pdf?download=true"
+      },
+      {
+        "name": "Mathematics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/Mathematics/grade%201%20mathematics%20old%20curriculum%20%20student%20textbook_kehulum_com_6b17.pdf?download=true"
+      }
+    ],
+    "Performing & Visual Art": [
+      {
+        "name": "Performing & Visual Art - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%201/Performing%20and%20Visual%20Art/grade%201%20Performing%20and%20visual%20art%20PVA%20new%20curriculum%20%20student%20textbook_kehulum_com_bab5.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 2": {
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%202/Amharic/grade%202%20amharic%20new%20curriculum%20%20student%20textbook_kehulum_com_a3a9.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%202/English/grade%202%20English%20For%20Ethiopia%20new%20curriculum%20%20student%20textbook_kehulum_com_56f8.pdf?download=true"
+      }
+    ],
+    "Environmental Science": [
+      {
+        "name": "Environmental Science - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%202/Environmental%20Science/grade%202%20Environmental%20science%20new%20curriculum%20%20student%20textbook_kehulum_com_b182.pdf?download=true"
+      }
+    ],
+    "Health & Physical Education": [
+      {
+        "name": "Health & Physical Education - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%202/Physics/grade%202%20Health%20and%20Physical%20Education%20HPE%20new%20curriculum%20%20student%20textbook_kehulum_com_1563.pdf?download=true"
+      }
+    ],
+    "Mathematics": [
+      {
+        "name": "Mathematics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%202/Mathematics/grade%202%20mathematics%20new%20curriculum%20%20student%20textbook_kehulum_com_24c1.pdf?download=true"
+      }
+    ],
+    "Performing & Visual Art": [
+      {
+        "name": "Performing & Visual Art - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%202/Performing%20and%20Visual%20Art/grade%202%20Performing%20and%20Visual%20Art%20PVA%20new%20curriculum%20%20student%20textbook_kehulum_com_ab28.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 3": {
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%203/Amharic/grade-3-amharic-new-curriculum--student-textbook-kehulumcom1759675822d7f4.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%203/English/grade%203%20English%20For%20Ethiopia%20new%20curriculum%20%20student%20textbook_kehulum_com_4e4d.pdf?download=true"
+      }
+    ],
+    "Performing & Visual Art": [
+      {
+        "name": "Performing & Visual Art - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%203/Performing%20and%20Visual%20Art/grade-3-performance-and-visual-arts-pva-new-curriculum--student-textbook_kehulum_com_5604.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 4": {
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%204/Amharic/grade-4-amharic-new-curriculum--student-textbook-kehulumcom17597279453d96.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - Old curriculum (Book 1)",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%204/English/grade-4-english-for-ethiopia-book-1-old-curriculum--student-textbookkehulumcom17520762075cc2.pdf?download=true"
+      },
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%204/English/grade-4-english-for-ethiopia-new-curriculum--student-textbookkehulumcom1752067733ba84.pdf?download=true"
+      }
+    ],
+    "Performing & Visual Art": [
+      {
+        "name": "Performing & Visual Art - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%204/Performing%20and%20Visual%20Art/grade-4-performance-and-visual-arts-new-curriculum--student-textbookkehulumcom1752070640b057.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 5": {
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%205/Amharic/grade-5-amharic-new-curriculum--student-textbookkehulumcom1752571941ed36.pdf?download=true"
+      },
+      {
+        "name": "Amharic - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%205/Amharic/grade-5-amharic-old-curriculum--student-textbook-kehulumcom175265941252e0.pdf?download=true"
+      }
+    ],
+    "Civics & Ethical Education": [
+      {
+        "name": "Civics & Ethical Education - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%205/Civics/grade-5-civics-and-ethical-education-old-curriculum--student-textbook-kehulumcom175267997315e2.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%205/English/grade-5-english-for-ethiopia-new-curriculum--student-textbook-_kehulum_com_a4c1.pdf?download=true"
+      },
+      {
+        "name": "English - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%205/English/grade-5-english-old-curriculum--student-textbook-kehulumcom17526791149c23.pdf?download=true"
+      }
+    ],
+    "Environmental Science": [
+      {
+        "name": "Environmental Science - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%205/Environmental%20Science/grade-5-environmental-science-new-curriculum--student-textbook_kehulum_com_ce41.pdf?download=true"
+      }
+    ],
+    "Mathematics": [
+      {
+        "name": "Mathematics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%205/Mathematics/grade-5-mathematics-new-curriculum--student-textbookkehulumcom17525722048f5e.pdf?download=true"
+      },
+      {
+        "name": "Mathematics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%205/Mathematics/grade-5-mathematics-old-curriculum--student-textbook-kehulumcom1752684820a190.pdf?download=true"
+      }
+    ],
+    "Performing & Visual Art": [
+      {
+        "name": "Performing & Visual Art - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%205/Performing%20and%20Visual%20Art/grade-5-performing-and-visual-art-pva-new-curriculum--student-textbookkehulumcom175256829186b2.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 6": {
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%206/Amharic/grade-6-amharic-new-curriculum--student-textbook-kehulumcom17599042229727.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%206/English/grade-6-english-for-ethiopia-new-curriculum--student-textbook-_kehulum_com_9ae3.pdf?download=true"
+      },
+      {
+        "name": "English - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%206/English/grade-6-english-for-ethiopia-old-curriculum--student-textbook-kehulumcom17528294835b31.pdf?download=true"
+      }
+    ],
+    "Performing & Visual Art": [
+      {
+        "name": "Performing & Visual Art - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%206/Performing%20and%20Visual%20Art/grade-6-performing-and-visual-art-pva-new-curriculum--student-textbook-kehulumcom1759903749eedd.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 7": {
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%207/Amharic/grade-7-amharic-new-curriculum--student-textbook-kehulumcom175301376657d5.pdf?download=true"
+      }
+    ],
+    "Citizenship": [
+      {
+        "name": "Citizenship - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%207/Civics/grade-7-citizen-education-new-curriculum--student-textbook-kehulumcom1753014899e456.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%207/English/grade-7-english-for-ethiopia-new-curriculum--student-textbook-kehulumcom17530146233499.pdf?download=true"
+      },
+      {
+        "name": "English - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%207/English/grade-7-english-for-ethiopia-old-curriculum--student-textbook-kehulumcom1754409639aa30.pdf?download=true"
+      }
+    ],
+    "General Science": [
+      {
+        "name": "General Science - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%207/General/grade-7-general-science-new-curriculum--student-textbook-kehulumcom17530139504fed.pdf?download=true"
+      }
+    ],
+    "ICT": [
+      {
+        "name": "ICT - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%207/General/grade-7-information-technology-new-curriculum--student-textbook-kehulumcom17530134780e9c.pdf?download=true"
+      }
+    ],
+    "Mathematics": [
+      {
+        "name": "Mathematics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%207/Mathematics/grade-7-mathematics-new-curriculum--student-textbook-kehulumcom1753014402b995.pdf?download=true"
+      }
+    ],
+    "Performing & Visual Art": [
+      {
+        "name": "Performing & Visual Art - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%207/Performing%20and%20Visual%20Art/grade-7-performing-and-visual-art-pva-new-curriculum--student-textbook-kehulumcom1753013239c614.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 8": {
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%208/Amharic/grade-8-amharic-new-curriculum--student-textbook-kehulumcom1754476387a274.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%208/English/grade-8-english-for-ethiopia-new-curriculum--student-textbook-kehulumcom1754477106d9f5.pdf?download=true"
+      },
+      {
+        "name": "English - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%208/English/grade-8-english-for-ethiopia-old-curriculum--student-textbook-kehulumcom1754486943076f.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 9": {
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Amharic/grade-9-amharic-new-curriculum--student-textbook-kehulumcom1759933673b3a1.pdf?download=true"
+      },
+      {
+        "name": "Amharic - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Amharic/grade-9-amharic-old-curriculum--student-textbook-kehulumcom1754571415254b.pdf?download=true"
+      }
+    ],
+    "Biology": [
+      {
+        "name": "Biology - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Biology/grade-9-biology-new-curriculum--student-textbook-kehulumcom17599334842417.pdf?download=true"
+      },
+      {
+        "name": "Biology - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Biology/grade-9-biology-old-curriculum--student-textbook-kehulumcom1754576096a64f.pdf?download=true"
+      }
+    ],
+    "Chemistry": [
+      {
+        "name": "Chemistry - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Chemistry/grade-9-chemistry-new-curriculum--student-textbook-kehulumcom17599332397bc8.pdf?download=true"
+      }
+    ],
+    "Citizenship": [
+      {
+        "name": "Citizenship - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Civics/grade-9-citizenship-education-new-curriculum--student-textbook-kehulumcom17599329642348.pdf?download=true"
+      }
+    ],
+    "Civics & Ethical Education": [
+      {
+        "name": "Civics & Ethical Education - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Civics/grade-9-civics-and-ethical-education-old-curriculum--student-textbook-kehulumcom175457497994f0.pdf?download=true"
+      }
+    ],
+    "Economics": [
+      {
+        "name": "Economics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Economics/grade-9-economics-new-curriculum--student-textbook-kehulumcom1759932804ce76.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/English/grade-9-english-for-ethiopia-new-curriculum--student-textbook-kehulumcom175993262346a1.pdf?download=true"
+      },
+      {
+        "name": "English - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/English/grade-9-english-for-ethiopia-old-curriculum--student-textbook-kehulumcom17544978611f05.pdf?download=true"
+      }
+    ],
+    "Geography": [
+      {
+        "name": "Geography - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Geography/grade-9-geography-new-curriculum--student-textbook-kehulumcom1759931498f683.pdf?download=true"
+      },
+      {
+        "name": "Geography - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Geography/grade-9-geography-old-curriculum--student-textbook-kehulumcom1754579313e5a1.pdf?download=true"
+      }
+    ],
+    "Health & Physical Education": [
+      {
+        "name": "Health & Physical Education - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Physics/grade-9-health-and-physical-education-hpe-new-curriculum--student-textbook-kehulumcom1759931015f4a8.pdf?download=true"
+      }
+    ],
+    "History": [
+      {
+        "name": "History - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/General/grade-9-history-new-curriculum--student-textbook-kehulumcom1759931286d445.pdf?download=true"
+      }
+    ],
+    "ICT": [
+      {
+        "name": "ICT - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/General/grade-9-information-technology-new-curriculum--student-textbook-kehulumcom1759930819ba23.pdf?download=true"
+      },
+      {
+        "name": "ICT - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/ICT/grade-9-information-communication-technology-ict-old-curriculum--student-textbook-kehulumcom1754574165c4d5.pdf?download=true"
+      }
+    ],
+    "Mathematics": [
+      {
+        "name": "Mathematics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Mathematics/grade-9-mathematics-new-curriculum--student-textbook-_kehulum_com_0fa6.pdf?download=true"
+      },
+      {
+        "name": "Mathematics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Mathematics/grade-9-mathimatics-old-curriculum--student-textbook-kehulumcom1754572998865d.pdf?download=true"
+      }
+    ],
+    "Physics": [
+      {
+        "name": "Physics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Physics/grade-9-physics-new-curriculum--student-textbook-kehulumcom1759930084a307.pdf?download=true"
+      },
+      {
+        "name": "Physics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%209/Physics/grade-9-physics-old-curriculum--student-textbook-kehulumcom1754577873caed.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 10": {
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Amharic/grade-10-amharic-new-curriculum--student-textbook-kehulumcom1759929798ed19.pdf?download=true"
+      }
+    ],
+    "Biology": [
+      {
+        "name": "Biology - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Biology/G10-Biology-STB-2023-web.pdf?download=true"
+      }
+    ],
+    "Chemistry": [
+      {
+        "name": "Chemistry - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Chemistry/G10-Chemistry-STB-2023-web.pdf?download=true"
+      }
+    ],
+    "Citizenship": [
+      {
+        "name": "Citizenship - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Citizenship/G10-Citizenship-STB-2023-web.pdf?download=true"
+      }
+    ],
+    "Civics & Ethical Education": [
+      {
+        "name": "Civics & Ethical Education - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Civics/grade-10-civics-and-ethical-education-old-curriculum--student-textbook-kehulumcom1755062491e37c.pdf?download=true"
+      }
+    ],
+    "Economics": [
+      {
+        "name": "Economics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Economics/G10-Economics-STB-2023-web.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/English/grade-10-english-for-ethiopia-new-curriculum--student-textbook-kehulumcom1759928736fa82.pdf?download=true"
+      }
+    ],
+    "Geography": [
+      {
+        "name": "Geography - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Geography/grade-10-geography-new-curriculum--student-textbook-kehulumcom17599285581298.pdf?download=true"
+      }
+    ],
+    "Health & Physical Education": [
+      {
+        "name": "Health & Physical Education - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Hpe/G10-HPE-STB-2023-web.pdf?download=true"
+      }
+    ],
+    "History": [
+      {
+        "name": "History - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/History/G10-History-STB-2023-web.pdf?download=true"
+      }
+    ],
+    "ICT": [
+      {
+        "name": "ICT - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/ICT/G10-IT-STB-2023-web.pdf?download=true"
+      }
+    ],
+    "Mathematics": [
+      {
+        "name": "Mathematics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Mathematics/G10-Mathematics-STB-2023-web.pdf?download=true"
+      }
+    ],
+    "Physics": [
+      {
+        "name": "Physics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Physics/G10-Physics-STB-2023-web.pdf?download=true"
+      },
+      {
+        "name": "Physics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2010/Physics/grade-10-physics-old-curriculum--student-textbook-kehulumcom175506666478bc.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 11": {
+    "Agriculture": [
+      {
+        "name": "Agriculture - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Agriculture/G11-Agriculture-STB-2023-web-1.pdf?download=true"
+      }
+    ],
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Amharic/grade-11-amharic-new-curriculum--student-textbook-kehulumcom175508944449ce.pdf?download=true"
+      }
+    ],
+    "Biology": [
+      {
+        "name": "Biology - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Biology/G11-Biology-STB-2023-web.pdf?download=true"
+      },
+      {
+        "name": "Biology - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Biology/grade-11-biology-old-curriculum--student-textbook-kehulumcom1755138104bc1e.pdf?download=true"
+      }
+    ],
+    "Chemistry": [
+      {
+        "name": "Chemistry - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Chemistry/G11-Chemistry-STB-2023-web.pdf?download=true"
+      },
+      {
+        "name": "Chemistry - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Chemistry/grade-11-chemistry-old-curriculum--student-textbook-kehulumcom175513758161b6.pdf?download=true"
+      }
+    ],
+    "Economics": [
+      {
+        "name": "Economics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Economics/G11-Economics-STB-2023-web.pdf?download=true"
+      },
+      {
+        "name": "Economics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Economics/grade-11-economics-old-curriculum--student-textbook-kehulumcom1755112487f4e6.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/English/grade-11-english-for-ethiopia-new-curriculum--student-textbook-kehulumcom175992307047b8.pdf?download=true"
+      },
+      {
+        "name": "English - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/English/grade-11-english-for-ethiopia-old-curriculum--student-textbook-kehulumcom1755141804458e.pdf?download=true"
+      }
+    ],
+    "Geography": [
+      {
+        "name": "Geography - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Geography/grade-11-geography-new-curriculum--student-textbook-kehulumcom1759920987ac44.pdf?download=true"
+      },
+      {
+        "name": "Geography - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Geography/grade-11-geography-old-curriculum--student-textbook-kehulumcom1755108829c4e8.pdf?download=true"
+      }
+    ],
+    "History": [
+      {
+        "name": "History - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/General/grade-11-history-old-curriculum--student-textbook-kehulumcom175511174991e7.pdf?download=true"
+      },
+      {
+        "name": "History - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/History/G11-History-STB-2023-web.pdf?download=true"
+      }
+    ],
+    "ICT": [
+      {
+        "name": "ICT - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/ICT/G11-IT-STB-2023-web.pdf?download=true"
+      },
+      {
+        "name": "ICT - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/ICT/grade-11-information-communication-technology-ict-old-curriculum--student-textbook-kehulumcom1755138507d6a7.pdf?download=true"
+      }
+    ],
+    "Mathematics": [
+      {
+        "name": "Mathematics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Mathematics/G11-Mathematics-STB-2023-web.pdf?download=true"
+      },
+      {
+        "name": "Mathematics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Mathematics/grade-11-mathematics-old-curriculum--student-textbook-kehulumcom1755140120db88.pdf?download=true"
+      }
+    ],
+    "Physics": [
+      {
+        "name": "Physics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Physics/grade-11-physics-new-curriculum--student-textbook-kehulumcom17551049158ab7.pdf?download=true"
+      },
+      {
+        "name": "Physics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2011/Physics/grade-11-physics-old-curriculum--student-textbook-kehulumcom1755143125fdc9.pdf?download=true"
+      }
+    ]
+  },
+  "Grade 12": {
+    "Agriculture": [
+      {
+        "name": "Agriculture - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/General/grade-12-agriculure-new-curriculum--student-textbook-kehulumcom175991626076c1.pdf?download=true"
+      }
+    ],
+    "Amharic": [
+      {
+        "name": "Amharic - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Amharic/grade-12-amharic-new-curriculum--student-textbook-kehulumcom1759241489d36c.pdf?download=true"
+      }
+    ],
+    "Biology": [
+      {
+        "name": "Biology - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Biology/grade-12-biology-new-curriculum--student-textbook-kehulumcom17599148324a02.pdf?download=true"
+      },
+      {
+        "name": "Biology - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Biology/grade-12-biology-old-curriculum--student-textbook-kehulumcom17551535477795.pdf?download=true"
+      }
+    ],
+    "Chemistry": [
+      {
+        "name": "Chemistry - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Chemistry/grade-12-chemistry-new-curriculum--student-textbook-kehulumcom1759915918b6bd.pdf?download=true"
+      },
+      {
+        "name": "Chemistry - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Chemistry/grade-12-chemistry-old-curriculum--student-textbook-kehulumcom17551529478492.pdf?download=true"
+      }
+    ],
+    "Economics": [
+      {
+        "name": "Economics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Economics/grade-12-economics-new-curriculum--student-textbook-kehulumcom1759915712056d.pdf?download=true"
+      },
+      {
+        "name": "Economics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Economics/grade-12-economics-old-curriculum--student-textbook-kehulumcom17551775079114.pdf?download=true"
+      }
+    ],
+    "English": [
+      {
+        "name": "English - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/English/grade-12-english-for-ethiopia-new-curriculum--student-textbook-kehulumcom1759915593b3b5.pdf?download=true"
+      },
+      {
+        "name": "English - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/English/grade-12-english-for-ethiopia-old-curriculum--student-textbook-kehulumcom1755181029f89f.pdf?download=true"
+      }
+    ],
+    "Geography": [
+      {
+        "name": "Geography - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Geography/grade-12-geography-new-curriculum--student-textbook-kehulumcom17599134797b34.pdf?download=true"
+      },
+      {
+        "name": "Geography - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Geography/grade-12-geography-old-curriculum--student-textbook-kehulumcom17551651766f21.pdf?download=true"
+      }
+    ],
+    "History": [
+      {
+        "name": "History - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/General/grade-12-history-new-curriculum--student-textbook-kehulumcom17599097897dd4.pdf?download=true"
+      },
+      {
+        "name": "History - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/General/grade-12-history-old-curriculum--student-textbook-kehulumcom1755165597ef36.pdf?download=true"
+      }
+    ],
+    "ICT": [
+      {
+        "name": "ICT - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/General/grade-12-information-technology-new-curriculum--student-textbook-kehulumcom1759915352faae.pdf?download=true"
+      },
+      {
+        "name": "ICT - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/ICT/grade-12-information-communication-technology-ict-old-curriculum--student-textbook-kehulumcom17551644570331.pdf?download=true"
+      }
+    ],
+    "Mathematics": [
+      {
+        "name": "Mathematics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Mathematics/grade-12-mathematics-new-curriculum--student-textbook-kehulumcom17599122086bb1.pdf?download=true"
+      },
+      {
+        "name": "Mathematics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Mathematics/grade-12-mathematics-old-curriculum--student-textbook-kehulumcom175516396074e8.pdf?download=true"
+      }
+    ],
+    "Physics": [
+      {
+        "name": "Physics - New curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Physics/grade-12-physics-new-curriculum--student-textbook-kehulumcom1759910068aff6.pdf?download=true"
+      },
+      {
+        "name": "Physics - Old curriculum",
+        "url": "https://huggingface.co/datasets/Kinfemichael/students-book/resolve/main/New%20Curriculum/Grade%2012/Physics/grade-12-physics-old-curriculum--student-textbook-kehulumcom17551517967603.pdf?download=true"
+      }
+    ]
+  }
+}

@@ -1,0 +1,358 @@
+{
+  "2018 EC": {
+    "Aptitude": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-Aptitude_2018-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-Aptitude_2018-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-Biology_2018-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-Biology_2018-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-Chemistry_2018-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-Chemistry_2018-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-English_2018-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-English_2018-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Mathematics (Round 1)": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-Mathematics_2018-EC-Round-1_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-Mathematics_2018-EC-Round-1_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Physics (Round 3)": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-Physics_2018-EC-Round-3_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2018_EC/Grade-12-Physics_2018-EC-Round-3_Entrance-Exam_Question-Paper.pdf?download=true"
+    }
+  },
+  "2017 EC": {
+    "Aptitude": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Aptitude_2017-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Aptitude_2017-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Biology_2017-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Biology_2017-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Chemistry_2017-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Chemistry_2017-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Economics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Economics_2017-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Economics_2017-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-English_2017-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-English_2017-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "History": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-History_2017-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-History_2017-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Mathematics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Mathematics_2017-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Mathematics_2017-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Physics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Physics_2017-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2017_EC/Grade-12-Physics_2017-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    }
+  },
+  "2016 EC": {
+    "Aptitude": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Aptitude_2016-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Aptitude_2016-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Biology_2016-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Biology_2016-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Chemistry_2016-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Chemistry_2016-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Economics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Economics_2016-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Economics_2016-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-English_2016-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-English_2016-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Geography": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Geography_2016-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Geography_2016-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "History": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-History_2016-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-History_2016-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Mathematics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Mathematics_2016-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Mathematics_2016-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Physics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Physics_2016-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2016_EC/Grade-12-Physics_2016-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    }
+  },
+  "2015 EC": {
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-Biology_2015-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-Biology_2015-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-Chemistry_2015-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-Chemistry_2015-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-English_2015-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-English_2015-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Geography": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-Geography_2015-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-Geography_2015-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "History": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-History_2015-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-History_2015-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Physics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-Physics_2015-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2015_EC/Grade-12-Physics_2015-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    }
+  },
+  "2014 EC": {
+    "Aptitude": {
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2004_EC/Grade-12-Aptitude_2014-EC_Entrance-Exam_Question-Paper.pdf?download=true",
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Aptitude_2014-EC_Entrance-Exam_Answer-Key.pdf?download=true"
+    },
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Biology_2014-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Biology_2014-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Chemistry_2014-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Chemistry_2014-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-English_2014-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-English_2014-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Geography": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Geography_2014-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Geography_2014-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "History": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-History_2014-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-History_2014-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Mathematics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Mathematics_2014-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Mathematics_2014-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Physics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Physics_2014-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2014_EC/Grade-12-Physics_2014-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    }
+  },
+  "2013 EC": {
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-Biology_2013-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-Biology_2013-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-Chemistry_2013-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-Chemistry_2013-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-English_2013-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-English_2013-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Geography": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-Geography_2013-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-Geography_2013-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "History": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-History_2013-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-History_2013-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Mathematics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-Mathematics_2013-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2013_EC/Grade-12-Mathematics_2013-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    }
+  },
+  "2012 EC": {
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2012_EC/Grade-12-Biology_2012-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2012_EC/Grade-12-Biology_2012-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Economics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2012_EC/Grade-12-Economics_2012-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2012_EC/Grade-12-Economics_2012-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Geography": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2012_EC/Grade-12-Geography_2012-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2012_EC/Grade-12-Geography_2012-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "History": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2012_EC/Grade-12-History_2012-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2012_EC/Grade-12-History_2012-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    }
+  },
+  "2011 EC": {
+    "Economics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2011_EC/Grade-12-Economics_2011-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2011_EC/Grade-12-Economics_2011-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "History": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2011_EC/Grade-12-History_2011-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2011_EC/Grade-12-History_2011-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    }
+  },
+  "2010 EC": {
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2010_EC/biology-2010-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2010_EC/biology-2010-questions.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2010_EC/chemistry-2010-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2010_EC/chemistry-2010-questions.pdf?download=true"
+    },
+    "Civics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2010_EC/civics-2010-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2010_EC/civics-2010-questions.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2010_EC/english-2010-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2010_EC/english-2010-questions.pdf?download=true"
+    },
+    "Physics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2010_EC/physics-2010-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2010_EC/physics-2010-questions.pdf?download=true"
+    }
+  },
+  "2009 EC": {
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2009_EC/biology-2009-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2009_EC/biology-2009-questions.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2009_EC/chemistry-2009-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2009_EC/chemistry-2009-questions.pdf?download=true"
+    },
+    "Civics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2009_EC/civics-2009-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2009_EC/civics-2009-questions.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2009_EC/english-2009-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2009_EC/english-2009-questions.pdf?download=true"
+    },
+    "Physics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2009_EC/physics-2009-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2009_EC/physics-2009-questions.pdf?download=true"
+    }
+  },
+  "2008 EC": {
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2008_EC/biology-2008-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2008_EC/biology-2008-questions.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2008_EC/chemistry-2008-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2008_EC/chemistry-2008-questions.pdf?download=true"
+    },
+    "Civics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2008_EC/civics-2008-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2008_EC/civics-2008-questions.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2008_EC/english-2008-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2008_EC/english-2008-questions.pdf?download=true"
+    },
+    "Physics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2008_EC/physics-2008-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2008_EC/physics-2008-questions.pdf?download=true"
+    }
+  },
+  "2007 EC": {
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2007_EC/biology-2007-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2007_EC/biology-2007-questions.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2007_EC/chemistry-2007-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2007_EC/chemistry-2007-questions.pdf?download=true"
+    },
+    "Civics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2007_EC/civics-2007-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2007_EC/civics-2007-questions.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2007_EC/english-2007-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2007_EC/english-2007-questions.pdf?download=true"
+    },
+    "Physics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2007_EC/physics-2007-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2007_EC/physics-2007-questions.pdf?download=true"
+    }
+  },
+  "2006 EC": {
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2006_EC/biology-2006-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2006_EC/biology-2006-questions.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2006_EC/chemistry-2006-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2006_EC/chemistry-2006-questions.pdf?download=true"
+    },
+    "Civics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2006_EC/civics-2006-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2006_EC/civics-2006-questions.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2006_EC/english-2006-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2006_EC/english-2006-questions.pdf?download=true"
+    },
+    "Physics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2006_EC/physics-2006-answers.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2006_EC/physics-2006-questions.pdf?download=true"
+    }
+  },
+  "2005 EC": {
+    "Biology": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-Biology_2005-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-Biology_2005-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Chemistry": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-Chemistry_2005-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-Chemistry_2005-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Civics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-Civics_2005-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-Civics_2005-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "English": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-English_2005-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-English_2005-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Mathematics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-Mathematics_2005-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-Mathematics_2005-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    },
+    "Physics": {
+      "Answer key": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-Physics_2005-EC_Entrance-Exam_Answer-Key.pdf?download=true",
+      "Question paper": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/2005_EC/Grade-12-Physics_2005-EC_Entrance-Exam_Question-Paper.pdf?download=true"
+    }
+  },
+  "Formula sheets": {
+    "Mathematics": {
+      "Open": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/General_Exams/Grade-12-Mathematics_Formula-Sheet_English.pdf?download=true"
+    },
+    "Physics": {
+      "Open": "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/General_Exams/Grade-12-Physics_Formula-Sheet_English.pdf?download=true"
+    }
+  }
+}
