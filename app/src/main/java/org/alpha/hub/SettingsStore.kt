@@ -17,6 +17,7 @@ class SettingsStore(ctx: Context) {
     private fun defaults(): JSONObject = JSONObject()
         .put("theme", "Blue")            // የተስማማ ነባሪ: ሰማያዊ / agreed default: blue
         .put("online_mode", true)
+        .put("appearance", "device")   // light | dark | device
         .put("language", "AM")
         .put("nickname", "")
         .put("onboarded", false)
@@ -35,6 +36,7 @@ class SettingsStore(ctx: Context) {
 
     private fun sanitize() {
         if (data.opt("online_mode") !is Boolean) data.put("online_mode", true)
+        if (data.optString("appearance") !in listOf("light", "dark", "device")) data.put("appearance", "device")
         if (data.optString("language") !in listOf("AM", "EN")) data.put("language", "AM")
         data.put("nickname", data.optString("nickname").trim().take(40))
         if (data.opt("onboarded") !is Boolean) data.put("onboarded", false)

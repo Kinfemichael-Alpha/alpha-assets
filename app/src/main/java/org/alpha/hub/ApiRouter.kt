@@ -82,6 +82,7 @@ class ApiRouter(private val ctx: Context) {
             .put("theme", theme)
             .put("palette", themeByName(theme))
             .put("online_mode", settings.getBool("online_mode"))
+            .put("appearance", settings.getString("appearance"))
             .put("language", settings.getString("language"))
             .put("active_model", JSONObject.NULL)
     }
@@ -113,6 +114,11 @@ class ApiRouter(private val ctx: Context) {
             val t = b.optString("theme")
             if (themeByName(t) == null) throw ApiError(400, "err_bad_request")
             settings.set("theme", t)
+        }
+        if (b.has("appearance")) {
+            val a = b.optString("appearance")
+            if (a != "light" && a != "dark" && a != "device") throw ApiError(400, "err_bad_request")
+            settings.set("appearance", a)
         }
         if (b.has("online_mode")) {
             if (b.opt("online_mode") !is Boolean) throw ApiError(400, "err_bad_request")

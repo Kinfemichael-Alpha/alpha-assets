@@ -50,18 +50,18 @@
     const nick = A.S.state.nickname;
     const tile = (cls, icon, label, screen) => h('button', { class: 'tile ' + cls, type: 'button', onclick: () => A.go(screen) }, A.icon(icon), h('span', null, label));
     const langBtn = h('button', { class: 'bar-btn txt', type: 'button', onclick: () => A.setLang(A.S.lang === 'AM' ? 'EN' : 'AM') }, t('lang_btn'));
-    const setBtn = h('button', { class: 'bar-btn', type: 'button', 'aria-label': t('settings_title'), onclick: () => A.go('settings') }, '=');
+    const setBtn = h('button', { class: 'bar-btn', type: 'button', 'aria-label': t('settings_title'), onclick: () => A.go('settings') }, A.icon('sliders'));
     const el = A.page(
       A.bar({ title: t('dashboard_title'), back: false, right: [langBtn, setBtn] }),
       h('div', { class: 'scroll ruled stack' },
         h('h1', { class: 'hello' }, nick ? t('home_greeting', { name: nick }) : t('dashboard_question')),
         h('div', { class: 'tiles' },
-          tile('main', 'chat', t('btn_ai'), 'ai'),
-          tile('', 'quiz', t('btn_quiz'), 'quiz'),
-          tile('tinted', 'note', t('btn_notes'), 'notes'),
-          tile('tinted', 'book', t('btn_books'), 'books'),
-          tile('', 'chart', t('btn_progress'), 'progress'),
-          tile('wide', 'phone', t('btn_contact'), 'contact'))));
+          tile('main c-green', 'chat', t('btn_ai'), 'ai'),
+          tile('c-blue', 'quiz', t('btn_quiz'), 'quiz'),
+          tile('c-teal', 'note', t('btn_notes'), 'notes'),
+          tile('c-amber', 'book', t('btn_books'), 'books'),
+          tile('c-purple', 'chart', t('btn_progress'), 'progress'),
+          tile('wide c-accent', 'phone', t('btn_contact'), 'contact'))));
     return { el };
   };
 
@@ -108,7 +108,7 @@
       A.S.strings = i18n.strings;
       A.S.lang = state.settings.language;
       document.documentElement.lang = A.S.lang === 'AM' ? 'am' : 'en';
-      A.applyTheme(state.settings.palette);
+      A.applyTheme(state.settings.palette); A.applyMode(state.settings.appearance);
       A.ads.setStatus(state.ads);       // ባነር ቦታ + የ AI ጊዜ ሁኔታ
     })();
     try { await Promise.all([A.sleep(5000), load]); } catch (e) { return fatal(e); }

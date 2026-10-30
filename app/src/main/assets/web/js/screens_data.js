@@ -53,6 +53,16 @@
     /* ----- 1. ገጽታ (Global Theme Engine) */
     function drawTheme() {
       A.clear(secTheme).append(h('div', { class: 'h-sec' }, t('set_theme')));
+      // ብርሃን / ጨለማ / ራስ-ሰር
+      const modeCur = A.S.state.settings.appearance || 'device';
+      const seg = h('div', { class: 'tabs', role: 'tablist' });
+      [['light', t('mode_light')], ['dark', t('mode_dark')], ['device', t('mode_device')]].forEach(([key, label]) => seg.append(h('button', {
+        class: 'tab', type: 'button', role: 'tab', 'aria-selected': String(key === modeCur),
+        onclick: async () => {
+          const r = await A.post('/api/settings', { appearance: key });
+          A.S.state.settings = r.settings; A.applyMode(r.settings.appearance); drawTheme();
+        } }, label)));
+      secTheme.append(seg);
       const sw = h('div', { class: 'swatches' });
       const cur = A.S.state.settings.theme;
       A.S.state.themes.forEach((p) => sw.append(h('button', {

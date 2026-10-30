@@ -47,6 +47,8 @@
   A.sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   const ICONS = {
+    back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
+    sliders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M5 4v16M12 4v16M19 4v16"/><path d="M3 9h4M10 15h4M17 8h4"/></svg>',
     chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5"/></svg>',
     book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M5 17a3 3 0 013-3h11"/></svg>',
     quiz: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9l1.6 1.6L12.5 7.5M8 16l1.6 1.6 2.9-3.1M15 10h2M15 17h2"/></svg>',
@@ -125,15 +127,29 @@
   };
 
   /* ---------------------------------------------------------------- theme (Global Theme Engine) */
+  // ቀለም ማደባለቂያ / small color helpers
+  const hex2rgb = (x) => { const n = parseInt(x.replace('#', ''), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const mixHex = (a, b, k) => { const A1 = hex2rgb(a), B1 = hex2rgb(b); return '#' + A1.map((v, i) => Math.round(v + (B1[i] - v) * k).toString(16).padStart(2, '0')).join(''); };
   A.applyTheme = function applyTheme(p) {
     if (!p) return;
+    A._palette = p;
     const r = document.documentElement.style;
+    const [R, G, B] = hex2rgb(p.primary);
     r.setProperty('--primary', p.primary);
     r.setProperty('--dark', p.dark);
-    r.setProperty('--paper', p.paper);
-    r.setProperty('--tint', p.tint);
+    r.setProperty('--primary-2', mixHex(p.primary, '#ffffff', 0.32));   // የቅልመት ሁለተኛ ቀለም
+    r.setProperty('--tint', 'rgba(' + R + ',' + G + ',' + B + ',.16)');  // ለማንኛውም ዳራ የሚስማማ ግልጽ ቀለም
     const m = document.querySelector('meta[name="theme-color"]');
     if (m) m.setAttribute('content', p.primary);
+  };
+  // የብርሃን / ጨለማ / የስልክ ራስ-ሰር ሁነታ
+  A.applyMode = function applyMode(mode) {
+    mode = mode === 'light' || mode === 'dark' ? mode : 'device';
+    A._mode = mode;
+    const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    const eff = mode === 'device' ? (mq && mq.matches ? 'dark' : 'light') : mode;
+    document.documentElement.setAttribute('data-mode', eff);
+    if (mq && !A._mqBound) { A._mqBound = true; const f = () => { if (A._mode === 'device') A.applyMode('device'); }; mq.addEventListener ? mq.addEventListener('change', f) : mq.addListener(f); }
   };
 
   /* ---------------------------------------------------------------- marquee (ህግ 3) */
@@ -242,7 +258,7 @@
   A.page = (bar, ...content) => h('section', null, bar, ...content);
   A.bar = function bar({ title, back = true, left = [], right = [] }) {
     return h('header', { class: 'bar' },
-      back ? h('button', { class: 'bar-btn', type: 'button', 'aria-label': t('back_btn'), onclick: () => A.back() }, '<') : null,
+      back ? h('button', { class: 'bar-btn', type: 'button', 'aria-label': t('back_btn'), onclick: () => A.back() }, A.icon('back')) : null,
       ...left,
       h('div', { class: 'bar-t' }, A.mq(title)),
       ...right);
