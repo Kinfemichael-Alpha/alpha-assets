@@ -388,7 +388,7 @@ h1, h2, h3, p { margin: 0; }
    ሁሉም ቀለሞች ከ tokens ይመጣሉ: --bg --surface --surface2 --ink --muted --line --primary --primary-2
    ===================================================================== */
 :root[data-mode="dark"] {
-  --bg: #0d0f14; --surface: #171a23; --surface2: #202433; --ink: #f1f3f9; --muted: #98a0b5; --line: #2a2f3f;
+  --bg: #070d1f; --surface: #0e1a36; --surface2: #162547; --ink: #eaf0ff; --muted: #8fa0c4; --line: #1e2f57;
   --ok: #3ddc84; --okbg: rgba(61, 220, 132, .16); --bad: #ff6b81; --badbg: rgba(255, 107, 129, .16);
   --shadow: 0 8px 22px rgba(0, 0, 0, .45); --shadow-s: 0 2px 8px rgba(0, 0, 0, .4);
   color-scheme: dark;
@@ -481,3 +481,8 @@ body { background: var(--bg); }
 .splash-bar i { background: linear-gradient(90deg, var(--primary), var(--primary-2)); }
 .ico { display: inline-flex; }
 .bar-btn .ico svg { width: 22px; height: 22px; }
+
+.composer .btn.stop { background: var(--bad, #c0392b); }
+.card input[type=range] { width: 100%; accent-color: var(--primary); margin: 6px 0 2px; }
+.card .stack-gap > * + * { margin-top: 8px; }
+#secAi > * + * { margin-top: 8px; }

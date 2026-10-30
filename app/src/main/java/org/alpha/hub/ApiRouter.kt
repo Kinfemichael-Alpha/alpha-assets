@@ -32,6 +32,8 @@ class ApiRouter(private val ctx: Context) {
             msg("online_no_internet") else msg("dl_failed").replace("{err}", "").trim().trimEnd(':').trim()
     }
     private val catalogCache = HashMap<String, List<LibGroup>>()
+    // የ AI ውይይት (Gemini ቀጥታ መልስ) / AI chat with live Gemini streaming
+    private val chat = ChatService(ctx, settings) { msg(it) }
 
     fun handle(method: String, fullPath: String, body: JSONObject): Pair<Int, JSONObject> {
         val path = fullPath.substringBefore('?')
@@ -65,6 +67,18 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/download/cancel" -> { downloader.cancel(); JSONObject().put("ok", true) }
         "POST /api/library/read" -> libraryRead(b)
         "POST /api/library/delete" -> libraryDelete(b)
+        // ---- AI ውይይት
+        "POST /api/ai/enter" -> aiEnter()
+        "POST /api/ai/leave" -> JSONObject().put("ok", true)   // ኦንላይን ሞዴል RAM አይጠቀምም / online uses no RAM
+        "GET /api/chat" -> chat.view()
+        "POST /api/chat/send" -> chat.send(b.optString("text"))
+        "POST /api/chat/continue" -> chat.continueReply()
+        "POST /api/chat/stop" -> { chat.stop(); JSONObject().put("ok", true) }
+        "GET /api/chat/poll" -> chat.poll(b.optString("job_id"))
+        "POST /api/chat/new" -> chat.newChat()
+        "POST /api/chat/save" -> chatSave()
+        // ቅንብሮች ማያ የሚጠይቀው ዝርዝር (ሞዴሎች ገና አልተሰሩም - ባዶ ዝርዝር) / settings screen list; models not ported yet
+        "GET /api/models" -> JSONObject().put("settings", settingsView()).put("downloaded", JSONArray()).put("public", JSONArray())
         // ገና ያልተሰሩ ክፍሎች / not yet ported
         else -> throw ApiError(501, "err_not_ready")
     }
@@ -85,6 +99,24 @@ class ApiRouter(private val ctx: Context) {
             .put("appearance", settings.getString("appearance"))
             .put("language", settings.getString("language"))
             .put("active_model", JSONObject.NULL)
+            // ቁልፉ ወደ UI አይመለስም፤ መኖሩና የመጨረሻ 4 ቁምፊ ብቻ / the key itself never goes back to the UI
+            .put("gemini_key_set", settings.getString("gemini_key").isNotEmpty())
+            .put("gemini_key_tail", settings.getString("gemini_key").takeLast(4))
+            .put("max_tokens", settings.getInt("max_tokens"))
+            .put("temperature", settings.getDouble("temperature"))
+            .put("resp_len", settings.getString("resp_len"))
+    }
+
+    private fun aiEnter(): JSONObject {
+        // ኦንላይን: ሞዴል መጫን አያስፈልግም / online: nothing to preload
+        if (settings.getBool("online_mode")) return JSONObject().put("mode", "online").put("ready", true).put("locked", false)
+        // ኦፍላይን AI ገና አልተሰራም (llama.cpp በኋላ) / offline AI comes later with llama.cpp
+        return JSONObject().put("mode", "offline").put("ready", false).put("message", msg("offline_soon"))
+    }
+
+    private fun chatSave(): JSONObject {
+        val r = chat.save()
+        return r.put("message", msg("chat_saved_ok"))
     }
 
     private fun state(): JSONObject = JSONObject()
@@ -123,6 +155,26 @@ class ApiRouter(private val ctx: Context) {
         if (b.has("online_mode")) {
             if (b.opt("online_mode") !is Boolean) throw ApiError(400, "err_bad_request")
             settings.set("online_mode", b.getBoolean("online_mode"))
+        }
+        if (b.has("gemini_key")) {
+            val k = b.optString("gemini_key").filter { !it.isWhitespace() }
+            if (k.length > 200) throw ApiError(400, "err_bad_request")
+            settings.set("gemini_key", k)
+        }
+        if (b.has("max_tokens")) {
+            val n = b.optInt("max_tokens", -1)
+            if (n < 256 || n > 8192) throw ApiError(400, "err_bad_request")
+            settings.set("max_tokens", n)
+        }
+        if (b.has("temperature")) {
+            val d = b.optDouble("temperature", -1.0)
+            if (d.isNaN() || d < 0.0 || d > 1.0) throw ApiError(400, "err_bad_request")
+            settings.set("temperature", d)
+        }
+        if (b.has("resp_len")) {
+            val r = b.optString("resp_len")
+            if (r != "short" && r != "long") throw ApiError(400, "err_bad_request")
+            settings.set("resp_len", r)
         }
         if (b.has("language")) {
             val l = b.optString("language")

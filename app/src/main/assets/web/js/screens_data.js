@@ -30,7 +30,7 @@
     let data = null;
     const secTheme = h('div', { class: 'card' });
     const secLang = h('div', { class: 'card' });
-    const secAi = h('div', { class: 'card' });
+    const secAi = h('div', { class: 'card stack' });
     const secModels = h('div', { class: 'card' });
     const secPublic = h('div', { class: 'card' });
     const secProfile = h('div', { class: 'card stack' });   // አማራጭ ቅጽል ስም
@@ -101,9 +101,47 @@
         } catch (e) { cb.checked = !cb.checked; A.info(e.message); }
         drawAi();
       });
+      const save = async (body, okMsg) => {
+        try {
+          const r = await A.post('/api/settings', body);
+          A.S.state.settings = r.settings;
+          if (okMsg) A.toast(okMsg);
+        } catch (e) { A.info(e.message); }
+        drawAi();
+      };
+      const keyInp = h('input', { class: 'inp', type: 'password', autocomplete: 'off', spellcheck: 'false', placeholder: t('key_ph'), 'aria-label': t('set_gemini_key') });
+      const keySave = h('button', { class: 'btn sm', type: 'button' }, t('btn_save'));
+      keySave.addEventListener('click', () => { if (keyInp.value.trim()) save({ gemini_key: keyInp.value.trim() }, t('key_saved')); });
+      const keyClear = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_clear'));
+      keyClear.addEventListener('click', async () => { if (await A.confirm(t('confirm_delete_book', { name: t('set_gemini_key') }))) save({ gemini_key: '' }, t('key_cleared')); });
+      const keyRow = h('div', { class: 'row' }, h('div', { class: 'grow' }, keyInp), keySave);
+      const tokVal = h('b', null, String(s.max_tokens));
+      const tok = h('input', { type: 'range', min: '512', max: '8192', step: '256', value: String(s.max_tokens), 'aria-label': t('set_max_tokens') });
+      tok.addEventListener('input', () => { tokVal.textContent = tok.value; });
+      tok.addEventListener('change', () => save({ max_tokens: parseInt(tok.value, 10) }));
+      const tmpVal = h('b', null, Number(s.temperature).toFixed(2));
+      const tmp = h('input', { type: 'range', min: '0', max: '1', step: '0.05', value: String(s.temperature), 'aria-label': t('set_temperature') });
+      const tmpWarn = h('div', { class: 'err small' }, t('temp_warn'));
+      tmpWarn.style.display = s.temperature > 0.8 ? '' : 'none';
+      tmp.addEventListener('input', () => { tmpVal.textContent = Number(tmp.value).toFixed(2); tmpWarn.style.display = Number(tmp.value) > 0.8 ? '' : 'none'; });
+      tmp.addEventListener('change', () => save({ temperature: parseFloat(tmp.value) }));
+      const lenSeg = h('div', { class: 'tabs', role: 'tablist' });
+      [['short', t('resp_short')], ['long', t('resp_long')]].forEach(([key, label]) => lenSeg.append(h('button', {
+        class: 'tab', type: 'button', role: 'tab', 'aria-selected': String(key === s.resp_len), onclick: () => save({ resp_len: key }),
+      }, label)));
       A.clear(secAi).append(
         h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('set_ai_mode')), h('label', { class: 'sw' }, cb, h('i'))),
-        h('div', { class: 'h-sec' }, A.mq(statusText())));
+        h('div', { class: 'h-sec' }, A.mq(statusText())),
+        h('div', { class: 'h-sec' }, t('set_gemini_key')),
+        h('div', { class: 'muted small' }, s.gemini_key_set ? t('key_set_tail', { tail: s.gemini_key_tail }) : t('key_not_set')),
+        keyRow,
+        s.gemini_key_set ? keyClear : null,
+        h('div', { class: 'muted small' }, t('set_gemini_hint')),
+        h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('set_max_tokens')), tokVal), tok,
+        h('div', { class: 'muted small' }, t('set_max_tokens_hint')),
+        h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('set_temperature')), tmpVal), tmp, tmpWarn,
+        h('div', { class: 'muted small' }, t('set_temp_hint')),
+        h('div', { class: 'h-sec' }, t('set_resp_len')), lenSeg);
       A.scheduleMarquees();
     }
 

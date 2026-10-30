@@ -21,6 +21,10 @@ class SettingsStore(ctx: Context) {
         .put("language", "AM")
         .put("nickname", "")
         .put("onboarded", false)
+        .put("gemini_key", "")           // የራስ Gemini ቁልፍ (በስልኩ ላይ ብቻ) / own Gemini key, stored locally only
+        .put("max_tokens", 2048)         // የመልስ ከፍተኛ ርዝመት / max reply tokens
+        .put("temperature", 0.45)        // 0.4-0.5 ነባሪ / default
+        .put("resp_len", "long")         // short | long
 
     @Synchronized
     private fun load() {
@@ -40,6 +44,10 @@ class SettingsStore(ctx: Context) {
         if (data.optString("language") !in listOf("AM", "EN")) data.put("language", "AM")
         data.put("nickname", data.optString("nickname").trim().take(40))
         if (data.opt("onboarded") !is Boolean) data.put("onboarded", false)
+        data.put("gemini_key", data.optString("gemini_key").filter { !it.isWhitespace() && !it.isISOControl() }.take(200))
+        data.put("max_tokens", data.optInt("max_tokens", 2048).coerceIn(256, 8192))
+        data.put("temperature", data.optDouble("temperature", 0.45).let { if (it.isNaN()) 0.45 else it }.coerceIn(0.0, 1.0))
+        if (data.optString("resp_len") !in listOf("short", "long")) data.put("resp_len", "long")
     }
 
     @Synchronized
@@ -53,14 +61,16 @@ class SettingsStore(ctx: Context) {
 
     @Synchronized fun getString(key: String): String = data.optString(key)
     @Synchronized fun getBool(key: String): Boolean = data.optBoolean(key)
+    @Synchronized fun getInt(key: String): Int = data.optInt(key)
+    @Synchronized fun getDouble(key: String): Double = data.optDouble(key)
 
     @Synchronized
     fun set(key: String, value: Any) { data.put(key, value); sanitize(); save() }
 
-    /** ስም እና onboarding ይጠበቃሉ / nickname and onboarding are kept */
+    /** ስም፣ onboarding እና ቁልፍ ይጠበቃሉ / nickname, onboarding and key are kept */
     @Synchronized
     fun reset() {
-        val nick = data.optString("nickname"); val on = data.optBoolean("onboarded")
-        data = defaults(); data.put("nickname", nick); data.put("onboarded", on); save()
+        val nick = data.optString("nickname"); val on = data.optBoolean("onboarded"); val key = data.optString("gemini_key")
+        data = defaults(); data.put("nickname", nick); data.put("onboarded", on); data.put("gemini_key", key); save()
     }
 }

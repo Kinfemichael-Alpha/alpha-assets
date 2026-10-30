@@ -25,6 +25,7 @@
     };
     const setUsage = (u) => { memFill.style.width = Math.min(100, Math.round(u * 100)) + '%'; mem.classList.toggle('hi', u >= 0.8); };
     const lock = (on) => { input.disabled = on; sendBtn.disabled = on; };
+    const setSend = (busy) => { sendBtn.textContent = busy ? t('btn_stop') : t('send_btn'); sendBtn.classList.toggle('stop', busy); };
 
     function welcome() { bubble('ai', nick ? t('ai_welcome_name', { name: nick }) : t('ai_welcome')); }
 
@@ -35,43 +36,79 @@
       setUsage(view.usage || 0);
     }
 
-    async function waitReply(jobId, tb) {
-      pending = true; lock(true);
+    let contBtn = null;
+    const clearCont = () => { if (contBtn) { contBtn.remove(); contBtn = null; } };
+
+    async function waitReply(jobId, tb, target) {
+      pending = true; setSend(true); clearCont();
+      let ai = null;
+      const show = (text) => {
+        if (!ai) { tb.remove(); ai = target || bubble('ai', ''); }
+        ai.textContent = text;
+        toBottom();
+      };
       try {
-        const j = await A.poll(jobId, (jj) => {
-          if (jj.status === 'loading' && alive) { tb.textContent = t('ai_status_loading'); }
-        });
-        if (!alive) return;
-        tb.remove();
-        bubble('ai', j.result.text);
-        setUsage(j.result.usage || 0);
-        if (j.result.warn) bubble('ai', t('ai_memory_warn'), 'note');
+        for (;;) {
+          if (!alive) return;
+          const j = await A.get('/api/chat/poll', { job_id: jobId });
+          if (!alive) return;
+          if (j.text) show(j.text);
+          setUsage(j.usage || 0);
+          if (j.status === 'running') { await new Promise((r) => setTimeout(r, 120)); continue; }
+          if (j.status === 'error') {
+            tb.remove();
+            bubble('ai', j.error || t('err_server'), 'err');
+            if (j.restore) { input.value = j.restore; autoGrow(); }
+            if (ai && j.text) offerContinue(ai);
+          } else {
+            if (j.finish === 'MAX_TOKENS') { bubble('ai', t('ai_cut_limit'), 'note'); offerContinue(ai); }
+            else if (j.finish === 'NETWORK') { bubble('ai', j.error || t('ai_cut_net'), 'note'); offerContinue(ai); }
+            if (j.warn) bubble('ai', t('ai_memory_warn'), 'note');
+          }
+          break;
+        }
       } catch (e) {
-        if (!alive) return;
         tb.remove();
         bubble('ai', e.message || t('err_server'), 'err');
       }
-      pending = false; lock(false); input.focus();
+      pending = false; setSend(false); input.focus();
+    }
+
+    function offerContinue(ai) {
+      clearCont();
+      contBtn = h('button', { class: 'btn sm', type: 'button' }, t('ai_continue'));
+      contBtn.addEventListener('click', async () => {
+        if (pending) return;
+        const btn = contBtn; clearCont();
+        try {
+          const r = await A.post('/api/chat/continue');
+          waitReply(r.job_id, h('span'), ai);
+        } catch (e) { bubble('ai', e.message, 'err'); }
+      });
+      const row = h('div', { class: 'msg note' }, contBtn);
+      list.append(row); toBottom();
+      contBtn.remove = () => row.remove();
     }
 
     async function send() {
+      if (pending) { try { await A.post('/api/chat/stop'); } catch (e) {} return; }
       const text = input.value.trim();
-      if (!text || pending) return;
+      if (!text) return;
       input.value = ''; autoGrow();
       bubble('user', text);
       const tb = typing();
       try {
-        const r = await A.ads.guard(() => A.post('/api/chat/send', { text }));   // ጊዜ ካለቀ የማስታወቂያ መስኮት
+        const r = await A.post('/api/chat/send', { text });
         waitReply(r.job_id, tb);
       } catch (e) {
         tb.remove();
-        if (e.data && e.data.error === 'ai_locked') { list.lastChild && list.lastChild.remove(); input.value = text; autoGrow(); return; }
+        input.value = text; autoGrow();
         bubble('ai', e.message, 'err');
       }
     }
     function autoGrow() { input.style.height = 'auto'; input.style.height = Math.min(120, input.scrollHeight) + 'px'; }
     input.addEventListener('input', autoGrow);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!pending) send(); } });
     sendBtn.addEventListener('click', send);
 
     /* |save|: ውይይቱን ወደ JSON ይልካል */
@@ -117,8 +154,8 @@
       try {
         const view = await A.get('/api/chat');
         render(view);
-        if (view.pending) {   // ከወጡ በኋላ ተመልሰው ሲገቡ ያልተመለሰ ጥያቄ ካለ
-          const tb = typing(); waitReply(view.pending, tb); return;
+        if (view.pending) {
+          const tb = typing(); const last = list.lastChild; waitReply(view.pending, tb, last && last.classList.contains('ai') ? last : null); lock(false); return;
         }
       } catch (e) { welcome(); }
       lock(false);
