@@ -24,6 +24,8 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         @Volatile var finish = ""          // STOP | MAX_TOKENS | NETWORK | STOPPED ...
         @Volatile var error = ""           // ወዳጃዊ መልእክት / friendly message
         @Volatile var cancelled = false
+        @Volatile var detail = ""
+        @Volatile var last = System.currentTimeMillis()
         @Volatile var restore = ""         // መልስ ሳይመጣ ከተሳሰ ጥያቄው ወደ ግብዓት ይመለሳል
     }
 
@@ -72,6 +74,14 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         return view()
     }
 
+    fun test(): JSONObject {
+        val key = settings.getString("gemini_key")
+        if (key.isEmpty()) throw ApiError(400, "online_need_key")
+        try { return JSONObject().put("ok", true).put("model", client.probe(key)) }
+        catch (e: GeminiError) { throw ApiError(502, e.key).also { lastDetail = e.technical } }
+    }
+    @Volatile var lastDetail = ""
+
     @Synchronized fun stop() { job?.let { it.cancelled = true; client.abort() } }
 
     /** ውይይቱን ወደ ፋይል ያስቀምጣል (በስልኩ ላይ ብቻ) / save chat locally */
@@ -118,7 +128,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         Thread {
             try {
                 val r = client.stream(key, system, contents, maxTokens, temp, false, { j.cancelled }) { piece ->
-                    j.text += piece; target.content = j.text    // ወዲያው ለ UI ይገኛል / visible to UI immediately
+                    j.text += piece; target.content = j.text; j.last = System.currentTimeMillis()    // ወዲያው ለ UI ይገኛል / visible to UI immediately
                 }
                 synchronized(this) {
                     when {
@@ -136,23 +146,23 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
                     else if (j.text.length > base.length) {
                         // የተመነጨው ክፍል ይጠበቃል፤ "ቀጥል" ይቀርባል / keep the partial text, offer "continue"
                         j.finish = "NETWORK"; j.error = msg(e.key); j.status = "done"; persist()
-                    } else fail(j, target, e.key, continuation, userText)
+                    } else fail(j, target, e.key, continuation, userText, e.technical)
                 }
-            } catch (e: Exception) {
-                synchronized(this) { fail(j, target, "err_server", continuation, userText) }
+            } catch (e: Throwable) {
+                synchronized(this) { fail(j, target, "err_server", continuation, userText, e.javaClass.simpleName + ": " + (e.message ?: "")) }
             }
         }.start()
         return JSONObject().put("job_id", j.id)
     }
 
     /** ምንም መልስ ሳይመጣ ሲከሽፍ: ባዶውን መልእክት ያስወግዳል፣ ጥያቄው ወደ ግብዓት ይመለሳል */
-    private fun fail(j: Job, target: Msg, key: String, continuation: Boolean, userText: String) {
+    private fun fail(j: Job, target: Msg, key: String, continuation: Boolean, userText: String, detail: String = "") {
         if (!continuation) {
             history.remove(target)
             val u = history.lastOrNull(); if (u != null && u.role == "user" && u.content == userText) history.removeAt(history.size - 1)
             j.restore = userText
         }
-        j.error = msg(key); j.status = "error"; persist()
+        j.error = msg(key); j.detail = detail; j.status = "error"; persist()
     }
 
     private fun systemPrompt(): String {
@@ -189,8 +199,14 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
     @Synchronized fun poll(id: String): JSONObject {
         val j = job
         if (j == null || j.id != id) throw ApiError(404, "err_not_found")
+        if (j.status == "running" && System.currentTimeMillis() - j.last > 90000) {
+            j.cancelled = true; client.abort()
+            if (j.text.isEmpty()) { history.lastOrNull()?.let { if (it.role == "assistant" && it.content.isEmpty()) history.remove(it) }; j.error = msg("online_unreachable"); j.status = "error" }
+            else { j.finish = "NETWORK"; j.error = msg("online_unreachable"); j.status = "done" }
+            persist()
+        }
         val o = JSONObject().put("status", j.status).put("text", j.text).put("finish", j.finish)
-            .put("error", j.error).put("restore", j.restore).put("usage", usage())
+            .put("error", j.error).put("detail", j.detail).put("restore", j.restore).put("usage", usage())
         o.put("warn", usage() >= 0.8)
         return o
     }

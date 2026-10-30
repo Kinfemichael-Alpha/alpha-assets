@@ -47,7 +47,7 @@ class ApiRouter(private val ctx: Context) {
         return try {
             Pair(200, route(method, path, body))
         } catch (e: ApiError) {
-            Pair(e.status, JSONObject().put("error", e.key).put("message", msg(e.key)))
+            Pair(e.status, JSONObject().put("error", e.key).put("message", msg(e.key) + chat.lastDetail.let { if (e.status == 502 && it.isNotEmpty()) "\n($it)" else "" }))
         } catch (e: Exception) {
             Pair(500, JSONObject().put("error", "server_error").put("message", msg("err_server")))
         }
@@ -71,6 +71,7 @@ class ApiRouter(private val ctx: Context) {
         // ---- AI ውይይት
         "POST /api/ai/enter" -> aiEnter()
         "POST /api/ai/leave" -> JSONObject().put("ok", true)   // ኦንላይን ሞዴል RAM አይጠቀምም / online uses no RAM
+        "POST /api/ai/test" -> chat.test()
         "GET /api/chat" -> chat.view()
         "POST /api/chat/send" -> chat.send(b.optString("text"))
         "POST /api/chat/continue" -> chat.continueReply()
@@ -171,7 +172,7 @@ class ApiRouter(private val ctx: Context) {
             settings.set("online_mode", b.getBoolean("online_mode"))
         }
         if (b.has("gemini_key")) {
-            val k = b.optString("gemini_key").filter { !it.isWhitespace() }
+            val k = b.optString("gemini_key").filter { it.isLetterOrDigit() || it == '_' || it == '-' || it == '.' }
             if (k.length > 200) throw ApiError(400, "err_bad_request")
             settings.set("gemini_key", k)
         }

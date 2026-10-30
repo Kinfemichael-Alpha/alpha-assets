@@ -35,6 +35,8 @@ class GeminiClient {
     /** ተጠቃሚው "አቁም" ሲል አሁን ያለውን ግንኙነት ይቆርጣል / abort the in-flight request */
     fun abort() { try { conn?.disconnect() } catch (_: Exception) { } }
 
+    fun probe(key: String): String = models(key, true).first()
+
     /** ለውይይት የሚሆኑ ሞዴሎች በቅድሚያ ቅደም ተከተል / usable chat models, best first */
     private fun models(key: String, force: Boolean = false): List<String> {
         if (!force && key == cachedKey && cachedModels.isNotEmpty()) return cachedModels

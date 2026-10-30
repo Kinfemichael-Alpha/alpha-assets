@@ -44,7 +44,7 @@ class SettingsStore(ctx: Context) {
         if (data.optString("language") !in listOf("AM", "EN")) data.put("language", "AM")
         data.put("nickname", data.optString("nickname").trim().take(40))
         if (data.opt("onboarded") !is Boolean) data.put("onboarded", false)
-        data.put("gemini_key", data.optString("gemini_key").filter { !it.isWhitespace() && !it.isISOControl() }.take(200))
+        data.put("gemini_key", data.optString("gemini_key").filter { it.isLetterOrDigit() || it == '_' || it == '-' || it == '.' }.take(200))
         data.put("max_tokens", data.optInt("max_tokens", 2048).coerceIn(256, 8192))
         data.put("temperature", data.optDouble("temperature", 0.45).let { if (it.isNaN()) 0.45 else it }.coerceIn(0.0, 1.0))
         if (data.optString("resp_len") !in listOf("short", "long")) data.put("resp_len", "long")

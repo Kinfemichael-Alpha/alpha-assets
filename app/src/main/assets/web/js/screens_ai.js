@@ -57,7 +57,7 @@
           if (j.status === 'running') { await new Promise((r) => setTimeout(r, 120)); continue; }
           if (j.status === 'error') {
             tb.remove();
-            bubble('ai', j.error || t('err_server'), 'err');
+            bubble('ai', (j.error || t('err_server')) + (j.detail ? '\n(' + j.detail + ')' : ''), 'err');
             if (j.restore) { input.value = j.restore; autoGrow(); }
             if (ai && j.text) offerContinue(ai);
           } else {

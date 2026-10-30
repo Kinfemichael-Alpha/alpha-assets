@@ -115,6 +115,12 @@
       const keyClear = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_clear'));
       keyClear.addEventListener('click', async () => { if (await A.confirm(t('confirm_delete_book', { name: t('set_gemini_key') }))) save({ gemini_key: '' }, t('key_cleared')); });
       const keyRow = h('div', { class: 'row' }, h('div', { class: 'grow' }, keyInp), keySave);
+      const testBtn = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_test_key'));
+      testBtn.addEventListener('click', async () => {
+        testBtn.disabled = true;
+        try { await A.post('/api/ai/test'); A.toast(t('key_works')); } catch (e) { A.info(e.message); }
+        testBtn.disabled = false;
+      });
       const tokVal = h('b', null, String(s.max_tokens));
       const tok = h('input', { type: 'range', min: '512', max: '8192', step: '256', value: String(s.max_tokens), 'aria-label': t('set_max_tokens') });
       tok.addEventListener('input', () => { tokVal.textContent = tok.value; });
@@ -135,7 +141,7 @@
         h('div', { class: 'h-sec' }, t('set_gemini_key')),
         h('div', { class: 'muted small' }, s.gemini_key_set ? t('key_set_tail', { tail: s.gemini_key_tail }) : t('key_not_set')),
         keyRow,
-        s.gemini_key_set ? keyClear : null,
+        s.gemini_key_set ? h('div', { class: 'row' }, h('div', { class: 'grow' }, testBtn), keyClear) : null,
         h('div', { class: 'muted small' }, t('set_gemini_hint')),
         h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('set_max_tokens')), tokVal), tok,
         h('div', { class: 'muted small' }, t('set_max_tokens_hint')),
