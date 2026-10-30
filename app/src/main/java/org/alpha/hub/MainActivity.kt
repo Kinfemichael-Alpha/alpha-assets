@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         router = ApiRouter(applicationContext)
+        router.onExit = { runOnUiThread { finishAffinity() } }
 
         web = WebView(this).apply {
             settings.javaScriptEnabled = true

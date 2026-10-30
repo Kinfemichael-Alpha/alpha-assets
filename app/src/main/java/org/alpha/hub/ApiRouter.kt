@@ -16,6 +16,8 @@ import org.json.JSONObject
 class ApiError(val status: Int, val key: String) : Exception(key)
 
 class ApiRouter(private val ctx: Context) {
+    var onExit: (() -> Unit)? = null
+    private val sync = ConfigSync(ctx)
     private val settings = SettingsStore(ctx)
     private val i18n: JSONObject = readAsset("i18n.json")
     private val themes: JSONArray = JSONArray(ctx.assets.open("themes.json").bufferedReader(Charsets.UTF_8).readText())
@@ -106,7 +108,12 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/models/activate" -> { models.activate(b.optString("name")); JSONObject().put("settings", settingsView()) }
         "POST /api/models/deactivate" -> { models.deactivate(); JSONObject().put("settings", settingsView()) }
         "POST /api/models/delete" -> { models.delete(b.optString("name")); JSONObject().put("settings", settingsView()) }
-        "POST /api/sync" -> study.runJob { JSONObject() }
+        "POST /api/sync" -> study.runJob { syncNow() }
+        "GET /api/contacts" -> contacts()
+        "POST /api/contacts/open" -> contactOpen(b)
+        "POST /api/exit" -> { chat.stop(); engine.unload(); onExit?.invoke(); JSONObject().put("ok", true) }
+        "POST /api/ads/rewarded" -> study.runJob { JSONObject().put("source", "fallback").put("minutes", 5) }
+        "POST /api/ads/interstitial" -> JSONObject().put("shown", false)
         // ገና ያልተሰሩ ክፍሎች / not yet ported
         else -> throw ApiError(501, "err_not_ready")
     }
@@ -134,6 +141,45 @@ class ApiRouter(private val ctx: Context) {
             .put("max_tokens", settings.getInt("max_tokens"))
             .put("temperature", settings.getDouble("temperature"))
             .put("resp_len", settings.getString("resp_len"))
+    }
+
+    private fun syncNow(): JSONObject {
+        val r = sync.refresh { name, text ->
+            if (name == "books.json" || name == "exams.json") try { LibraryCatalog.parse(JSONObject(text)).isNotEmpty() } catch (_: Exception) { false } else true
+        }
+        catalogCache.clear()
+        return r
+    }
+
+    init { Thread { try { if (sync.due()) syncNow() } catch (_: Exception) { } }.apply { isDaemon = true }.start() }
+
+    private val phoneRe = Regex("^\\+?[0-9][0-9 \\-()]{5,19}$")
+    private val tgRe = Regex("^@?[A-Za-z0-9_]{4,32}$")
+    private val mailRe = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+
+    private fun contacts(): JSONObject {
+        val o = try { JSONObject(sync.cached("contacts.json") ?: throw Exception()) } catch (_: Exception) { readAsset("contacts.json") }
+        fun list(k: String, re: Regex?): JSONArray {
+            val raw = o.opt(k); val out = JSONArray()
+            val items = when (raw) { is JSONArray -> (0 until raw.length()).map { raw.optString(it) }; is String -> listOf(raw); else -> emptyList() }
+            for (v in items) { val t = v.trim(); if (t.isNotEmpty() && (re == null || re.matches(t))) out.put(t) }
+            return out
+        }
+        return JSONObject().put("name", list("name", null)).put("phone", list("phone", phoneRe)).put("telegram", list("telegram", tgRe)).put("email", list("email", mailRe))
+    }
+
+    private fun contactOpen(b: JSONObject): JSONObject {
+        val kind = b.optString("kind"); val value = b.optString("value").trim()
+        if (kind != "phone" && kind != "telegram" && kind != "email") throw ApiError(400, "err_bad_request")
+        val list = contacts().getJSONArray(kind)
+        if ((0 until list.length()).none { list.getString(it) == value }) throw ApiError(404, "err_not_found")
+        val i = when (kind) {
+            "phone" -> Intent(Intent.ACTION_DIAL, android.net.Uri.parse("tel:" + value.replace(Regex("[\\s\\-()]"), "")))
+            "telegram" -> Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://t.me/" + value.trimStart('@')))
+            else -> Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("mailto:$value"))
+        }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try { ctx.startActivity(i) } catch (e: Exception) { throw ApiError(500, "err_open_failed") }
+        return JSONObject().put("ok", true)
     }
 
     private fun providerModels(b: JSONObject): JSONObject {
@@ -267,7 +313,7 @@ class ApiRouter(private val ctx: Context) {
         val k = b.optString("kind"); if (k != "books" && k != "exams") throw ApiError(400, "err_bad_request"); return k
     }
     private fun libDir(kind: String) = File(ctx.filesDir, kind).apply { mkdirs() }
-    private fun catalog(kind: String) = catalogCache.getOrPut(kind) { LibraryCatalog.load(ctx, kind) }
+    private fun catalog(kind: String) = catalogCache.getOrPut(kind) { LibraryCatalog.load(ctx, kind, sync.cached("$kind.json")) }
     private fun libFile(kind: String, name: String): File {
         if (!name.endsWith(".pdf") || name.contains('/') || name.contains('\\')) throw ApiError(400, "err_bad_request")
         return File(libDir(kind), name)
