@@ -493,3 +493,6 @@ body { background: var(--bg); }
 input[type=search].inp { width: 100%; }
 .nav-row .ico { display: inline-flex; width: 22px; height: 22px; color: var(--primary); opacity: .9; }
 .nav-row .ico svg { width: 22px; height: 22px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; }
+.pill .ico { display: inline-flex; width: 18px; height: 18px; }
+.pill .ico svg { width: 18px; height: 18px; }

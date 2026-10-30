@@ -73,7 +73,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, "AlphaBridge")
-        setContentView(web)
+        val root = android.widget.LinearLayout(this).apply { orientation = android.widget.LinearLayout.VERTICAL }
+        root.addView(web, android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+        val bannerBox = android.widget.FrameLayout(this)
+        root.addView(bannerBox, android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT))
+        setContentView(root)
+        router.ads = AdManager(this, bannerBox, router.settings)
         web.loadUrl("$origin/index.html")
     }
 

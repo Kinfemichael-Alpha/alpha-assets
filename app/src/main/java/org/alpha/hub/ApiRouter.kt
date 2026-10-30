@@ -17,8 +17,9 @@ class ApiError(val status: Int, val key: String) : Exception(key)
 
 class ApiRouter(private val ctx: Context) {
     var onExit: (() -> Unit)? = null
+    var ads: AdBridge? = null
     private val sync = ConfigSync(ctx)
-    private val settings = SettingsStore(ctx)
+    val settings = SettingsStore(ctx)
     private val i18n: JSONObject = readAsset("i18n.json")
     private val themes: JSONArray = JSONArray(ctx.assets.open("themes.json").bufferedReader(Charsets.UTF_8).readText())
 
@@ -35,7 +36,7 @@ class ApiRouter(private val ctx: Context) {
     }
     private val catalogCache = HashMap<String, List<LibGroup>>()
     // የ AI ውይይት (Gemini ቀጥታ መልስ) / AI chat with live Gemini streaming
-    private val engine = OfflineEngine(ctx)
+    private val engine = OfflineEngine(ctx).also { it.turbo = { System.currentTimeMillis() < settings.getLong("turbo_until") } }
     private val models = ModelManager(ctx, settings, engine) { msg(it) }
     private val llm = LlmService(ctx, settings)
     private val chat = ChatService(ctx, settings, llm, engine, models) { msg(it) }
@@ -66,7 +67,7 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/settings" -> updateSettings(b)
         "POST /api/settings/reset" -> { settings.reset(); JSONObject().put("settings", settingsView()) }
         "GET /api/ads/status" -> adsStatus()
-        "POST /api/ads/banner" -> JSONObject().put("ok", true)
+        "POST /api/ads/banner" -> { ads?.setBanner(b.optBoolean("visible", true)); JSONObject().put("ok", true) }
         "GET /api/library" -> libraryList(b)
         "POST /api/library/download" -> libraryDownload(b)
         "GET /api/download" -> downloader.snapshot()
@@ -112,8 +113,9 @@ class ApiRouter(private val ctx: Context) {
         "GET /api/contacts" -> contacts()
         "POST /api/contacts/open" -> contactOpen(b)
         "POST /api/exit" -> { chat.stop(); engine.unload(); onExit?.invoke(); JSONObject().put("ok", true) }
-        "POST /api/ads/rewarded" -> study.runJob { JSONObject().put("source", "fallback").put("minutes", 5) }
-        "POST /api/ads/interstitial" -> JSONObject().put("shown", false)
+        "POST /api/ads/rewarded" -> study.runJob { rewardedAd() }
+        "POST /api/ads/interstitial" -> interstitialAd()
+        "POST /api/ads/spend" -> adSpend(b)
         // ገና ያልተሰሩ ክፍሎች / not yet ported
         else -> throw ApiError(501, "err_not_ready")
     }
@@ -251,10 +253,46 @@ class ApiRouter(private val ctx: Context) {
         .put("themes", themes)
         .put("ads", adsStatus())
 
-    /** v0: AI ነጻ ነው (በማስታወቂያ አይዘጋም) - የማስታወቂያ ስርዓት በኋላ ይገባል / AI is free; real ads come later */
-    private fun adsStatus(): JSONObject = JSONObject()
-        .put("active", true).put("remaining", 86400).put("next_minutes", 0)
-        .put("provider", "none").put("banner_dp", 0).put("fake_banner", false)
+    private fun adsStatus(): JSONObject {
+        val now = System.currentTimeMillis()
+        return JSONObject().put("active", true).put("remaining", 86400).put("next_minutes", 0)
+            .put("provider", "admob").put("banner_dp", 0).put("fake_banner", false)
+            .put("points", settings.getInt("points"))
+            .put("skip_left", maxOf(0L, (settings.getLong("skip_until") - now) / 1000L))
+            .put("turbo_left", maxOf(0L, (settings.getLong("turbo_until") - now) / 1000L))
+    }
+
+    private fun rewardedAd(): JSONObject {
+        val bridge = ads ?: return JSONObject().put("source", "none").put("points", settings.getInt("points"))
+        val latch = java.util.concurrent.CountDownLatch(1)
+        var ok = false
+        bridge.showRewarded { ok = it; latch.countDown() }
+        latch.await(240, java.util.concurrent.TimeUnit.SECONDS)
+        if (ok) settings.set("points", settings.getInt("points") + 1)
+        return JSONObject().put("source", if (ok) "ad" else "none").put("points", settings.getInt("points"))
+    }
+
+    private fun interstitialAd(): JSONObject {
+        val now = System.currentTimeMillis()
+        val bridge = ads
+        val allowed = bridge != null && settings.getBool("online_mode") && now > settings.getLong("skip_until") && now - settings.getLong("last_inter") > 180000L
+        if (!allowed) return JSONObject().put("shown", false)
+        settings.set("last_inter", now)
+        bridge!!.showInterstitial { }
+        return JSONObject().put("shown", true)
+    }
+
+    private fun adSpend(b: JSONObject): JSONObject {
+        val now = System.currentTimeMillis()
+        val pts = settings.getInt("points")
+        val item = b.optString("item")
+        val cost = when (item) { "skip" -> 1; "turbo" -> 2; else -> throw ApiError(400, "err_bad_request") }
+        if (pts < cost) throw ApiError(402, "points_low")
+        settings.set("points", pts - cost)
+        if (item == "skip") settings.set("skip_until", maxOf(now, settings.getLong("skip_until")) + 3 * 60000L)
+        else settings.set("turbo_until", maxOf(now, settings.getLong("turbo_until")) + 10 * 60000L)
+        return adsStatus()
+    }
 
     private fun profile(b: JSONObject): JSONObject {
         if (b.has("nickname")) {

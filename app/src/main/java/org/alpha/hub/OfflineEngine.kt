@@ -41,6 +41,8 @@ class OfflineEngine(private val ctx: Context) {
     @Volatile var nCtx = 0
         private set
 
+    var turbo: () -> Boolean = { false }
+
     val supported: Boolean get() = LlamaBridge.available
 
     private fun memInfo(): ActivityManager.MemoryInfo {
@@ -70,7 +72,7 @@ class OfflineEngine(private val ctx: Context) {
         val free = freeRamMb()
         if (needMb > free + 200) throw OfflineError("model_ram_low", "$needMb|$free")
         val c = contextFor(totalRamMb())
-        val threads = Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
+        val threads = Runtime.getRuntime().availableProcessors().coerceIn(2, if (turbo()) 8 else 4)
         val h = try { bridge.nativeLoad(file.path, c, threads, true) } catch (e: Throwable) { throw OfflineError("model_load_failed", e.toString()) }
         if (h == 0L) throw OfflineError("model_load_failed")
         handle = h; loadedPath = file.path; nCtx = c

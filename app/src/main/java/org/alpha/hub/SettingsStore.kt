@@ -27,6 +27,10 @@ class SettingsStore(ctx: Context) {
         .put("resp_len", "long")         // short | long
         .put("active_model", "")
         .put("provider", "gemini")
+        .put("points", 0)
+        .put("skip_until", 0L)
+        .put("turbo_until", 0L)
+        .put("last_inter", 0L)
         .put("provider_cfg", JSONObject())
 
     @Synchronized
@@ -51,6 +55,8 @@ class SettingsStore(ctx: Context) {
         data.put("max_tokens", data.optInt("max_tokens", 2048).coerceIn(256, 8192))
         data.put("temperature", data.optDouble("temperature", 0.45).let { if (it.isNaN()) 0.45 else it }.coerceIn(0.0, 1.0))
         data.put("active_model", data.optString("active_model").takeIf { !it.contains('/') && !it.contains('\\') } ?: "")
+        data.put("points", data.optInt("points", 0).coerceIn(0, 100000))
+        for (k in listOf("skip_until", "turbo_until", "last_inter")) data.put(k, data.optLong(k, 0L).coerceAtLeast(0L))
         if (data.optString("provider").isEmpty()) data.put("provider", "gemini")
         if (data.optJSONObject("provider_cfg") == null) data.put("provider_cfg", JSONObject())
         if (data.optString("resp_len") !in listOf("short", "long")) data.put("resp_len", "long")
@@ -68,6 +74,7 @@ class SettingsStore(ctx: Context) {
     @Synchronized fun getString(key: String): String = data.optString(key)
     @Synchronized fun getBool(key: String): Boolean = data.optBoolean(key)
     @Synchronized fun getJson(key: String): JSONObject = JSONObject(data.optJSONObject(key)?.toString() ?: "{}")
+    @Synchronized fun getLong(key: String): Long = data.optLong(key)
     @Synchronized fun getInt(key: String): Int = data.optInt(key)
     @Synchronized fun getDouble(key: String): Double = data.optDouble(key)
 
@@ -77,7 +84,9 @@ class SettingsStore(ctx: Context) {
     /** ስም፣ onboarding እና ቁልፍ ይጠበቃሉ / nickname, onboarding and key are kept */
     @Synchronized
     fun reset() {
-        val nick = data.optString("nickname"); val on = data.optBoolean("onboarded"); val key = data.optString("gemini_key")
-        data = defaults(); data.put("nickname", nick); data.put("onboarded", on); data.put("gemini_key", key); save()
+        val nick = data.optString("nickname"); val on = data.optBoolean("onboarded"); val old = data
+        data = defaults(); data.put("nickname", nick); data.put("onboarded", on)
+        for (k in listOf("gemini_key", "provider", "provider_cfg", "points", "skip_until", "turbo_until")) if (old.has(k)) data.put(k, old.get(k))
+        save()
     }
 }
