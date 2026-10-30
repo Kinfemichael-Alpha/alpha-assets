@@ -39,7 +39,7 @@ class ApiRouter(private val ctx: Context) {
     private val models = ModelManager(ctx, settings, engine) { msg(it) }
     private val llm = LlmService(ctx, settings)
     private val chat = ChatService(ctx, settings, llm, engine, models) { msg(it) }
-    private val study = StudyService(ctx, settings, llm) { msg(it) }
+    private val study = StudyService(ctx, settings, llm, engine, models) { msg(it) }
 
     fun handle(method: String, fullPath: String, body: JSONObject): Pair<Int, JSONObject> {
         val path = fullPath.substringBefore('?')

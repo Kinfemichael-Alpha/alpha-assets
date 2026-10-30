@@ -11,8 +11,8 @@ import java.util.concurrent.ConcurrentHashMap
 import org.json.JSONArray
 import org.json.JSONObject
 
-class StudyService(ctx: Context, private val settings: SettingsStore, private val llm: LlmService, private val msg: (String) -> String) {
-    class JobState { @Volatile var state = "running"; @Volatile var result: JSONObject? = null; @Volatile var error = "" }
+class StudyService(ctx: Context, private val settings: SettingsStore, private val llm: LlmService, private val engine: OfflineEngine, private val models: ModelManager, private val msg: (String) -> String) {
+    class JobState { @Volatile var phase = ""; @Volatile var state = "running"; @Volatile var result: JSONObject? = null; @Volatile var error = "" }
 
     private val jobs = ConcurrentHashMap<String, JobState>()
     private val quizFile = File(ctx.filesDir, "quizzes.json")
@@ -31,7 +31,7 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
 
     fun job(id: String): JSONObject {
         val j = jobs[id] ?: throw ApiError(404, "err_not_found")
-        val o = JSONObject().put("state", j.state).put("status", j.state).put("error", j.error)
+        val o = JSONObject().put("state", j.state).put("status", if (j.phase.isNotEmpty() && j.state == "running") j.phase else j.state).put("error", j.error)
         j.result?.let { o.put("result", it) }
         return o
     }
@@ -50,9 +50,81 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
     }
 
     private fun requireKey(): String {
-        if (!settings.getBool("online_mode")) throw ApiError(400, "offline_soon")
+        if (!settings.getBool("online_mode")) {
+            if (!engine.supported) throw ApiError(400, "offline_unavailable")
+            if (models.activeFile() == null) throw ApiError(400, "no_active_model_hint")
+            return "offline"
+        }
         if (!llm.configured()) throw ApiError(400, "online_need_key")
         return "ok"
+    }
+
+    private fun offlineReady() = engine.supported && models.activeFile() != null
+
+    private fun <T> withOffline(j: JobState, block: () -> T): T {
+        val f = models.activeFile() ?: throw ApiError(400, "no_active_model_hint")
+        j.phase = "loading"
+        engine.load(f)
+        j.phase = ""
+        try { return block() } finally { engine.unload() }
+    }
+
+    private fun askOffline(system: String, user: String, maxTokens: Int, temp: Float): String {
+        val filter = ThinkFilter()
+        val sb = StringBuilder()
+        val name = models.activeFile()?.name ?: ""
+        val sys = if (name.contains("qwen3", true)) "$system /no_think" else system
+        val cap = minOf(maxTokens, (engine.nCtx / 2).coerceAtLeast(128))
+        engine.generate(listOf("system", "user"), listOf(sys, user), cap, temp, TokenSink { sb.append(filter.feed(it)); true })
+        return sb.toString()
+    }
+
+    private fun parseLineQuestion(raw: String, qtype: String): JSONObject? {
+        val text = raw.replace("**", "").replace("```", "")
+        val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        val qLine = lines.firstOrNull { Regex("(?i)^(?:q(?:uestion)?\\s*\\d*\\s*[:.)\\-])").containsMatchIn(it) } ?: return null
+        val question = qLine.replace(Regex("(?i)^q(?:uestion)?\\s*\\d*\\s*[:.)\\-]\\s*"), "").trim()
+        if (question.length < 5) return null
+        val ans = Regex("(?i)answer\\s*[:\\-]\\s*\\(?([A-D]|true|false)\\b").find(text)?.groupValues?.get(1)?.uppercase() ?: return null
+        val expl = Regex("(?i)explanation\\s*[:\\-]\\s*(.+)").find(text)?.groupValues?.get(1)?.trim() ?: ""
+        val options = ArrayList<String>(); val idx: Int
+        if (qtype == "tf") {
+            options.add(msg("tf_true")); options.add(msg("tf_false"))
+            idx = if (ans == "TRUE") 0 else if (ans == "FALSE") 1 else return null
+        } else {
+            val byLetter = HashMap<Char, String>()
+            for (l in lines) Regex("^\\(?([A-Da-d])[\\).:\\-]\\s*(.+)").find(l)?.let { byLetter[it.groupValues[1].uppercase()[0]] = it.groupValues[2].trim() }
+            if (byLetter.size < 3) return null
+            for (c in 'A'..'D') byLetter[c]?.let { options.add(it) }
+            idx = if (ans.length == 1 && ans[0] in 'A'..'D') (byLetter.keys.sorted().indexOf(ans[0])) else return null
+            if (idx < 0 || idx >= options.size) return null
+        }
+        return JSONObject().put("question", question).put("options", JSONArray(options)).put("answer", options[idx]).put("answer_index", idx).put("explanation", expl)
+    }
+
+    private fun offlineQuiz(j: JobState, topic: String, count: Int, qtype: String): JSONObject {
+        val qs = JSONArray()
+        withOffline(j) {
+            val seen = ArrayList<String>()
+            var attempts = 0
+            while (qs.length() < count && attempts < count * 2 + 2) {
+                attempts++
+                val avoid = if (seen.isEmpty()) "" else "\nDo not repeat these questions: " + seen.takeLast(4).joinToString(" | ") { it.take(80) }
+                val format = if (qtype == "tf") "Q: a true/false statement\nANSWER: True or False\nEXPLANATION: one short sentence"
+                    else "Q: question text\nA) option\nB) option\nC) option\nD) option\nANSWER: the correct letter\nEXPLANATION: one short sentence"
+                val kind = if (qtype == "tf") "true/false" else "multiple-choice"
+                val user = "Topic: $topic\nWrite ONE $kind exam question in English. Use exactly this format and nothing else:\n$format$avoid"
+                val out = askOffline("You write accurate exam questions for students. Follow the format exactly.", user, 320, (settings.getDouble("temperature") + 0.25).coerceAtMost(0.9).toFloat())
+                val q = parseLineQuestion(out, qtype) ?: continue
+                if (seen.any { it.equals(q.getString("question"), true) }) continue
+                seen.add(q.getString("question")); qs.put(q)
+            }
+        }
+        if (qs.length() == 0) throw ApiError(500, "quiz_parse_failed")
+        val a = readArr(quizFile); val id = nextId(a)
+        a.put(JSONObject().put("id", id).put("topic", topic).put("count", qs.length()).put("date", today()).put("questions", qs))
+        writeArr(quizFile, a)
+        return JSONObject().put("quiz_id", id).put("got", qs.length()).put("want", count)
     }
 
     private fun ask(key: String, system: String, user: String, maxTokens: Int, temperature: Double, json: Boolean): String {
@@ -68,8 +140,8 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
             val q = a.getJSONObject(i)
             out.put(JSONObject().put("id", q.getInt("id")).put("topic", q.optString("topic")).put("count", q.optInt("count")).put("date", q.optString("date")))
         }
-        return JSONObject().put("quizzes", out).put("max_questions", maxQuestions)
-            .put("mode", "online").put("offline_ready", settings.getBool("online_mode"))
+        return JSONObject().put("quizzes", out).put("max_questions", if (settings.getBool("online_mode")) maxQuestions else 10)
+            .put("mode", if (settings.getBool("online_mode")) "online" else "offline").put("offline_ready", settings.getBool("online_mode") || offlineReady())
     }
 
     fun quizGet(b: JSONObject): JSONObject {
@@ -108,8 +180,10 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
         val count = b.optInt("count", -1)
         val qtype = b.optString("qtype", "mc")
         if (topic.isEmpty() || (qtype != "mc" && qtype != "tf")) throw ApiError(400, "quiz_need_input")
-        if (count < 1 || count > maxQuestions) throw ApiError(400, "quiz_count_range")
+        val offline = !settings.getBool("online_mode")
+        if (count < 1 || count > (if (offline) 10 else maxQuestions)) throw ApiError(400, "quiz_count_range")
         val key = requireKey()
+        if (offline) return runJob { offlineQuiz(it, topic, count, qtype) }
         return runJob {
             val lang = if (hasEthiopic(topic)) "Amharic" else "English"
             val rule = if (qtype == "tf") "Each question has exactly two options: [\"True\", \"False\"] and \"answer\" is \"True\" or \"False\"."
@@ -214,7 +288,7 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
             out.put(JSONObject().put("id", n.getInt("id")).put("topic", n.optString("topic"))
                 .put("preview", n.optString("body").split(Regex("\\s+")).joinToString(" ").take(90)).put("date", n.optString("date")))
         }
-        return JSONObject().put("notes", out).put("model_ready", settings.getBool("online_mode")).put("online", true).put("ads", adsStatus)
+        return JSONObject().put("notes", out).put("model_ready", settings.getBool("online_mode") || offlineReady()).put("online", true).put("ads", adsStatus)
     }
 
     fun noteGet(b: JSONObject): JSONObject {
@@ -246,6 +320,14 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
         val length = b.optString("length", "short")
         if (topic.isEmpty() || (length != "short" && length != "medium")) throw ApiError(400, "notes_need_topic")
         val key = requireKey()
+        if (key == "offline") return runJob { j ->
+            val words = if (length == "medium") 180 else 110
+            val system = "You write clear, accurate, concise study notes for students. Plain text only: no markdown headings, no tables."
+            val user = "Write short study notes about: \"$topic\".\nLanguage: English. About $words words.\nFormat: first line is a short title. Then 5 to 8 bullet lines, each starting with '- '. Finish with one line starting with 'Key idea: '."
+            val text = cleanNote(withOffline(j) { askOffline(system, user, if (length == "medium") 700 else 450, 0.4f) })
+            if (text.isEmpty()) throw ApiError(500, "ai_empty")
+            JSONObject().put("text", text).put("topic", topic)
+        }
         return runJob {
             val lang = if (hasEthiopic(topic)) "Amharic" else "English"
             val words = if (length == "medium") 180 else 110
