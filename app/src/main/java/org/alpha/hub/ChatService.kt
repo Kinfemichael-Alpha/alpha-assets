@@ -135,7 +135,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
                     when {
                         j.cancelled || r.finishReason == "STOPPED" -> { j.finish = "STOPPED"; j.status = "done" }
                         j.text.length == base.length -> {      // ባዶ ምላሽ (የታገደ ወይም ባዶ)
-                            fail(j, target, if (r.blocked || r.finishReason == "SAFETY") "online_blocked" else "ai_empty", continuation, userText)
+                            fail(j, target, if (r.blocked || r.finishReason == "SAFETY") "online_blocked" else "ai_empty", continuation, userText, r.info)
                         }
                         else -> { j.finish = if (r.finishReason == "MAX_TOKENS") "MAX_TOKENS" else "STOP"; j.status = "done" }
                     }

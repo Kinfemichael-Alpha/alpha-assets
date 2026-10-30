@@ -18,7 +18,7 @@ import org.json.JSONObject
 class GeminiError(val key: String, val technical: String = "") : Exception(key)
 
 /** የአንድ ጥሪ ውጤት / result of one streamed call */
-class StreamResult(val finishReason: String, val blocked: Boolean)
+class StreamResult(val finishReason: String, val blocked: Boolean, val info: String = "")
 
 /**
  * Gemini REST (streamGenerateContent, SSE) - ቃል በቃል ወዲያው ለማሳየት።
@@ -84,7 +84,12 @@ class GeminiClient {
         for (model in list.take(4)) {
             if (isCancelled()) return StreamResult("STOPPED", false)
             try {
-                val r = streamOne(key, model, system, contents, maxTokens, temperature, json, isCancelled, onDelta)
+                var emitted = 0
+                val counting: (String) -> Unit = { emitted += it.length; onDelta(it) }
+                var r = streamOne(key, model, system, contents, maxTokens, temperature, json, isCancelled, counting)
+                if (emitted == 0 && r.finishReason == "MAX_TOKENS" && maxTokens < 8192 && !isCancelled()) {
+                    r = streamOne(key, model, system, contents, minOf(8192, maxTokens * 4), temperature, json, isCancelled, counting)
+                }
                 workingModel = model
                 return r
             } catch (e: GeminiError) {
@@ -102,15 +107,16 @@ class GeminiClient {
         key: String, model: String, system: String, contents: JSONArray, maxTokens: Int, temperature: Double, json: Boolean,
         isCancelled: () -> Boolean, onDelta: (String) -> Unit,
     ): StreamResult {
-        fun body(withThinking: Boolean): String {
+        fun body(mode: Int): String {
             val gen = JSONObject().put("maxOutputTokens", maxTokens).put("temperature", temperature)
             if (json) gen.put("responseMimeType", "application/json")
-            if (withThinking) gen.put("thinkingConfig", JSONObject().put("thinkingBudget", 0))   // ማሰቢያ ቶከን እንዳይበላ
+            if (mode == 0) gen.put("thinkingConfig", JSONObject().put("thinkingBudget", 0))
+            if (mode == 1) gen.put("thinkingConfig", JSONObject().put("thinkingLevel", "minimal"))
             val o = JSONObject().put("contents", contents).put("generationConfig", gen)
             if (system.isNotEmpty()) o.put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
             return o.toString()
         }
-        var withThinking = true
+        var mode = 0
         while (true) {
             val c = URL("$base/models/$model:streamGenerateContent?alt=sse").openConnection() as HttpURLConnection
             conn = c
@@ -118,15 +124,15 @@ class GeminiClient {
                 c.requestMethod = "POST"; c.connectTimeout = 15000; c.readTimeout = 60000; c.doOutput = true
                 c.setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 c.setRequestProperty("x-goog-api-key", key)   // ቁልፉ በ URL ውስጥ እንዳይገባ በ header / key in header, not URL
-                c.outputStream.use { it.write(body(withThinking).toByteArray(Charsets.UTF_8)) }
+                c.outputStream.use { it.write(body(mode).toByteArray(Charsets.UTF_8)) }
                 val code = c.responseCode
                 if (code != 200) {
                     val err = (c.errorStream ?: c.inputStream).bufferedReader(Charsets.UTF_8).readText()
                     // ሞዴሉ thinkingConfig ካልደገፈ ያለሱ እንደገና ይሞክራል / retry without thinking config if rejected
-                    if (code == 400 && withThinking && err.contains("thinking", true)) { withThinking = false; continue }
+                    if (code == 400 && mode < 2 && err.contains("thinking", true)) { mode++; continue }
                     throw httpError(code, err)
                 }
-                var finish = ""; var blocked = false
+                var finish = ""; var blocked = false; var lastRaw = ""
                 BufferedReader(InputStreamReader(c.inputStream, Charsets.UTF_8)).use { r ->
                     while (true) {
                         if (isCancelled()) return StreamResult("STOPPED", false)
@@ -134,6 +140,7 @@ class GeminiClient {
                         if (!line.startsWith("data:")) continue
                         val js = line.substring(5).trim()
                         if (js.isEmpty() || js == "[DONE]") continue
+                        lastRaw = js
                         val o = try { JSONObject(js) } catch (_: Exception) { continue }
                         if (o.optJSONObject("promptFeedback")?.optString("blockReason", "")?.isNotEmpty() == true) blocked = true
                         val cand = o.optJSONArray("candidates")?.optJSONObject(0) ?: continue
@@ -148,7 +155,7 @@ class GeminiClient {
                         if (fr.isNotEmpty()) finish = fr
                     }
                 }
-                return StreamResult(finish, blocked)
+                return StreamResult(finish, blocked, "$model finish=$finish " + lastRaw.take(260))
             } catch (e: GeminiError) { throw e
             } catch (e: IOException) {
                 if (isCancelled()) return StreamResult("STOPPED", false)
