@@ -153,7 +153,23 @@
 
     /* ----- 4. የወረዱ ሞዴሎች: |0| name |Activate|  ወይም  |1| name |deactivate| */
     function drawModels() {
-      A.clear(secModels).append(h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('models_downloaded_title')), refreshBtn));
+      const addBtn = h('button', { class: 'btn sm', type: 'button' }, t('btn_add_phone'));
+      addBtn.addEventListener('click', () => {
+        if (!window.AlphaBridge || !window.AlphaBridge.pickFile) return A.info(t('err_server'));
+        A._picked = async (r) => {
+          if (r.cancelled) return;
+          if (!r.ok) return A.info(r.message || t('err_server'));
+          const size = r.size_mb ? A.fmtSize(r.size_mb) : '';
+          if (!(await A.confirm(t('import_confirm', { name: r.title, size })))) return;
+          try {
+            await A.post('/api/models/import');
+            started = true;
+            watcher.kick();
+          } catch (err) { A.info(err.message); }
+        };
+        window.AlphaBridge.pickFile();
+      });
+      A.clear(secModels).append(h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('models_downloaded_title')), refreshBtn), addBtn);
       if (!data.downloaded.length) { secModels.append(h('p', { class: 'muted' }, t('no_downloaded_models'))); return; }
       const hasActive = data.downloaded.some((m) => m.active);
       data.downloaded.forEach((m) => {

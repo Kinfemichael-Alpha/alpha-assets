@@ -97,6 +97,7 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/progress/reset" -> study.progressReset()
         "GET /api/models" -> models.list().put("settings", settingsView()).put("download", downloader.snapshot())
         "POST /api/models/download" -> modelDownload(b)
+        "POST /api/models/import" -> modelImport()
         "POST /api/models/activate" -> { models.activate(b.optString("name")); JSONObject().put("settings", settingsView()) }
         "POST /api/models/deactivate" -> { models.deactivate(); JSONObject().put("settings", settingsView()) }
         "POST /api/models/delete" -> { models.delete(b.optString("name")); JSONObject().put("settings", settingsView()) }
@@ -136,6 +137,42 @@ class ApiRouter(private val ctx: Context) {
         val f = models.activeFile() ?: return off.put("message", msg("no_active_model_hint"))
         if (engine.isLoaded(f.path)) return off.put("ready", true).put("locked", false)
         return off.put("job_id", study.runJob { engine.load(f); JSONObject() }.getString("job_id"))
+    }
+
+    private class PendingImport(val uri: android.net.Uri, val name: String, val size: Long)
+    @Volatile private var pendingImport: PendingImport? = null
+
+    fun prepareImport(uri: android.net.Uri): JSONObject {
+        var name = ""; var size = -1L
+        try {
+            ctx.contentResolver.query(uri, null, null, null, null)?.use { c ->
+                if (c.moveToFirst()) {
+                    val ni = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    val si = c.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                    if (ni >= 0) name = c.getString(ni) ?: ""
+                    if (si >= 0 && !c.isNull(si)) size = c.getLong(si)
+                }
+            }
+            val magic = ByteArray(4)
+            val n = ctx.contentResolver.openInputStream(uri)?.use { it.read(magic) } ?: -1
+            if (n != 4 || String(magic, Charsets.US_ASCII) != "GGUF") return JSONObject().put("ok", false).put("message", msg("import_not_gguf"))
+        } catch (e: Exception) { return JSONObject().put("ok", false).put("message", msg("err_open_failed")) }
+        var safe = name.map { if (it.isLetterOrDigit() || it == '.' || it == '-' || it == '_') it else '_' }.joinToString("").trim('.', '_')
+        if (safe.isEmpty()) safe = "model"
+        if (!safe.endsWith(".gguf", true)) safe += ".gguf"
+        pendingImport = PendingImport(uri, safe, size)
+        return JSONObject().put("ok", true).put("name", safe).put("title", models.cleanTitle(safe)).put("size_mb", if (size > 0) Math.round(size / 1048576.0) else JSONObject.NULL)
+    }
+
+    private fun modelImport(): JSONObject {
+        val p = pendingImport ?: throw ApiError(400, "err_bad_request")
+        val dest = File(models.dir, p.name)
+        if (dest.exists()) throw ApiError(409, "import_exists")
+        if (p.size > 0 && models.dir.usableSpace < p.size + 200L * 1048576L) throw ApiError(507, "import_no_space")
+        val ok = downloader.startCopy({ ctx.contentResolver.openInputStream(p.uri) ?: throw java.io.IOException("open") }, p.size, dest, p.name, models.cleanTitle(p.name), "public")
+        if (!ok) throw ApiError(409, "dl_busy")
+        pendingImport = null
+        return JSONObject().put("ok", true)
     }
 
     private fun modelDownload(b: JSONObject): JSONObject {

@@ -35,6 +35,43 @@ class FileDownloader(private val friendly: (Exception) -> String) {
         return true
     }
 
+    @Synchronized
+    fun startCopy(open: () -> java.io.InputStream, size: Long, dest: File, fname: String, ttl: String, kind: String): Boolean {
+        if (isRunning()) return false
+        state = "running"; name = fname; title = ttl; scope = kind
+        pct = 0; downloaded = 0; total = if (size > 0) size else -1; error = ""
+        cancel = AtomicBoolean(false)
+        val flag = cancel
+        Thread { runCopy(open, dest, flag) }.apply { isDaemon = true }.start()
+        return true
+    }
+
+    private fun runCopy(open: () -> java.io.InputStream, dest: File, flag: AtomicBoolean) {
+        val part = File(dest.path + ".part")
+        try {
+            dest.parentFile?.mkdirs()
+            open().use { input ->
+                FileOutputStream(part, false).use { out ->
+                    val buf = ByteArray(256 * 1024)
+                    while (true) {
+                        if (flag.get()) { part.delete(); state = "cancelled"; return }
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        out.write(buf, 0, n)
+                        downloaded += n
+                        if (total > 0) pct = (downloaded * 100 / total).toInt().coerceAtMost(100)
+                    }
+                }
+            }
+            if (!part.renameTo(dest)) throw IOException("rename")
+            pct = 100; state = "done"
+        } catch (e: Exception) {
+            part.delete()
+            error = friendly(e)
+            state = "error"
+        }
+    }
+
     fun cancel() { if (isRunning()) cancel.set(true) }
 
     private fun run(url: String, dest: File, flag: AtomicBoolean) {

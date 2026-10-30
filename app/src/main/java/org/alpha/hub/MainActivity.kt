@@ -25,12 +25,20 @@ import java.util.concurrent.Executors
 class MainActivity : AppCompatActivity() {
 
     private lateinit var web: WebView
+    private lateinit var router: ApiRouter
+    private val pool = Executors.newFixedThreadPool(4)
+    private val picker = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        pool.execute {
+            val r = if (uri == null) JSONObject().put("ok", false).put("cancelled", true) else router.prepareImport(uri)
+            runOnUiThread { web.evaluateJavascript("window.A && A._picked && A._picked(${r})", null) }
+        }
+    }
     private val origin = "https://appassets.androidplatform.net"
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val router = ApiRouter(applicationContext)
+        router = ApiRouter(applicationContext)
 
         web = WebView(this).apply {
             settings.javaScriptEnabled = true
@@ -48,8 +56,10 @@ class MainActivity : AppCompatActivity() {
         }
         // JS -> Kotlin ድልድይ: POST body በ shouldInterceptRequest ስለማይገኝ ጥሪዎች በዚህ ይሄዳሉ
         // JS -> Kotlin bridge (request bodies are not available in shouldInterceptRequest)
-        val pool = Executors.newFixedThreadPool(4)
         web.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun pickFile() { runOnUiThread { picker.launch(arrayOf("*/*")) } }
+
             @JavascriptInterface
             fun call(id: Int, method: String, path: String, bodyJson: String) {
                 pool.execute {
