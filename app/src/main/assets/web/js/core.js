@@ -200,16 +200,14 @@
     setTimeout(() => el.remove(), ms);
   };
 
-  /* ብጁ የመጫኛ አኒሜሽን: ASCII | / - \ እና የሰከንድ ቆጣሪ */
+  /* የመጫኛ አኒሜሽን: የሚሽከረከር ክብ (CSS) እና የሰከንድ ቆጣሪ */
   A.loading = function loading(message, title) {
-    const frames = '|/-\\';
-    let i = 0, secs = 0, base = message;
-    const spin = h('div', { class: 'spin', 'aria-hidden': 'true' }, frames[0]);
+    let secs = 0, base = message;
+    const spin = h('div', { class: 'spin', 'aria-hidden': 'true' });
     const msg = h('div', { class: 'center' }, base);
     const m = A.modal({ title: title || t('ai_loading_title'), body: h('div', null, spin, msg) });
-    const iv = setInterval(() => { i = (i + 1) % 4; spin.textContent = frames[i]; }, 150);
     const sv = setInterval(() => { secs += 1; msg.textContent = base + ' (' + secs + 's)'; }, 1000);
-    const stop = () => { clearInterval(iv); clearInterval(sv); };
+    const stop = () => { clearInterval(sv); };
     const ctl = {
       set(text) { base = text; msg.textContent = text; },
       close() { stop(); m.close(); },

@@ -223,8 +223,9 @@ h1, h2, h3, p { margin: 0; }
 .count { font-size: 44px; font-weight: 900; text-align: center; font-variant-numeric: tabular-nums; padding-top: 10px; }
 
 /* loading spinner: ASCII | / - \ */
-.spin { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 56px; font-weight: 900; text-align: center; line-height: 1; color: var(--primary); padding: 6px 0 2px; }
-.spin.bad { color: var(--bad); }
+.spin { width: 54px; height: 54px; margin: 8px auto 6px; border-radius: 50%; border: 5px solid var(--tint); border-top-color: var(--primary); animation: spin-r .9s linear infinite; }
+.spin.bad { border-color: var(--bad); animation: none; display: grid; place-items: center; font-size: 30px; font-weight: 900; color: var(--bad); }
+@keyframes spin-r { to { transform: rotate(360deg); } }
 .center { text-align: center; }
 
 /* toast */

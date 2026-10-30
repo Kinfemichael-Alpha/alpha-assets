@@ -8,7 +8,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.kinfemichael.alphaai"   // የመተግበሪያ መለያ (በ Play ላይ ቋሚ ነው) / permanent app id
+        applicationId = "com.kinfemichael.apps.alphaai"   // የመተግበሪያ መለያ (በ Play ላይ ቋሚ ነው) / permanent app id
         minSdk = 24            // Android 7.0+ / አንድ APK ለሁሉም
         targetSdk = 34
         versionCode = 1

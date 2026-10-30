@@ -127,7 +127,7 @@
           await load();
         });
         secModels.append(h('div', { class: 'item' },
-          h('span', { class: 'badge' }, m.active ? '|1|' : '|0|'),
+          h('span', { class: 'badge' }, m.active ? '●' : '○'),
           h('div', { class: 'grow' }, A.mq(m.title), h('div', { class: 'muted small' }, m.scope + ' - ' + A.fmtSize(m.size_mb))),
           act, del));
       });
