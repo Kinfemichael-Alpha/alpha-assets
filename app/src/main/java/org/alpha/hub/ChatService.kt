@@ -117,7 +117,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         val temp = settings.getDouble("temperature")
         Thread {
             try {
-                val r = client.stream(key, system, contents, maxTokens, temp, { j.cancelled }) { piece ->
+                val r = client.stream(key, system, contents, maxTokens, temp, false, { j.cancelled }) { piece ->
                     j.text += piece; target.content = j.text    // ወዲያው ለ UI ይገኛል / visible to UI immediately
                 }
                 synchronized(this) {

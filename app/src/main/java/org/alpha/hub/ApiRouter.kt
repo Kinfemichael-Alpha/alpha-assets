@@ -34,6 +34,7 @@ class ApiRouter(private val ctx: Context) {
     private val catalogCache = HashMap<String, List<LibGroup>>()
     // የ AI ውይይት (Gemini ቀጥታ መልስ) / AI chat with live Gemini streaming
     private val chat = ChatService(ctx, settings) { msg(it) }
+    private val study = StudyService(ctx, settings) { msg(it) }
 
     fun handle(method: String, fullPath: String, body: JSONObject): Pair<Int, JSONObject> {
         val path = fullPath.substringBefore('?')
@@ -78,6 +79,19 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/chat/new" -> chat.newChat()
         "POST /api/chat/save" -> chatSave()
         // ቅንብሮች ማያ የሚጠይቀው ዝርዝር (ሞዴሎች ገና አልተሰሩም - ባዶ ዝርዝር) / settings screen list; models not ported yet
+        "GET /api/job" -> study.job(b.optString("id"))
+        "GET /api/quiz/list" -> study.quizList()
+        "GET /api/quiz/get" -> study.quizGet(b)
+        "POST /api/quiz/generate" -> study.quizGenerate(b)
+        "POST /api/quiz/score" -> study.quizScore(b)
+        "POST /api/quiz/delete" -> study.quizDelete(b)
+        "GET /api/notes/list" -> study.notesList(adsStatus())
+        "GET /api/notes/get" -> study.noteGet(b)
+        "POST /api/notes/generate" -> study.noteGenerate(b)
+        "POST /api/notes/save" -> study.noteSave(b)
+        "POST /api/notes/delete" -> study.noteDelete(b)
+        "GET /api/progress" -> study.progress()
+        "POST /api/progress/reset" -> study.progressReset()
         "GET /api/models" -> JSONObject().put("settings", settingsView()).put("downloaded", JSONArray()).put("public", JSONArray())
         // ገና ያልተሰሩ ክፍሎች / not yet ported
         else -> throw ApiError(501, "err_not_ready")

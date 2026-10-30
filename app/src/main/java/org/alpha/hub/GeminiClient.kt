@@ -73,7 +73,7 @@ class GeminiClient {
      * onDelta ለእያንዳንዱ ቁራጭ ጽሁፍ ይጠራል / called for every streamed text piece.
      */
     fun stream(
-        key: String, system: String, contents: JSONArray, maxTokens: Int, temperature: Double,
+        key: String, system: String, contents: JSONArray, maxTokens: Int, temperature: Double, json: Boolean,
         isCancelled: () -> Boolean, onDelta: (String) -> Unit,
     ): StreamResult {
         var list = try { models(key) } catch (e: GeminiError) { throw e } catch (e: IOException) { throw mapIo(e) }
@@ -82,7 +82,7 @@ class GeminiClient {
         for (model in list.take(4)) {
             if (isCancelled()) return StreamResult("STOPPED", false)
             try {
-                val r = streamOne(key, model, system, contents, maxTokens, temperature, isCancelled, onDelta)
+                val r = streamOne(key, model, system, contents, maxTokens, temperature, json, isCancelled, onDelta)
                 workingModel = model
                 return r
             } catch (e: GeminiError) {
@@ -97,11 +97,12 @@ class GeminiClient {
     }
 
     private fun streamOne(
-        key: String, model: String, system: String, contents: JSONArray, maxTokens: Int, temperature: Double,
+        key: String, model: String, system: String, contents: JSONArray, maxTokens: Int, temperature: Double, json: Boolean,
         isCancelled: () -> Boolean, onDelta: (String) -> Unit,
     ): StreamResult {
         fun body(withThinking: Boolean): String {
             val gen = JSONObject().put("maxOutputTokens", maxTokens).put("temperature", temperature)
+            if (json) gen.put("responseMimeType", "application/json")
             if (withThinking) gen.put("thinkingConfig", JSONObject().put("thinkingBudget", 0))   // ማሰቢያ ቶከን እንዳይበላ
             val o = JSONObject().put("contents", contents).put("generationConfig", gen)
             if (system.isNotEmpty()) o.put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
