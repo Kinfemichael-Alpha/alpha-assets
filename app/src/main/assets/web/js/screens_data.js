@@ -177,6 +177,8 @@
       [['short', t('resp_short')], ['long', t('resp_long')]].forEach(([key, label]) => lenSeg.append(h('button', {
         class: 'tab', type: 'button', role: 'tab', 'aria-selected': String(key === s.resp_len), onclick: () => save({ resp_len: key }),
       }, label)));
+      const dbg = h('input', { type: 'checkbox', checked: !!s.debug_details, 'aria-label': t('set_debug') });
+      dbg.addEventListener('change', () => save({ debug_details: dbg.checked }));
       A.clear(secAi).append(
         h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('set_ai_mode')), h('label', { class: 'sw' }, cb, h('i'))),
         h('div', { class: 'h-sec' }, A.mq(statusText())),
@@ -184,7 +186,8 @@
         h('div', { class: 'muted small' }, t('set_max_tokens_hint')),
         h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('set_temperature')), tmpVal), tmp, tmpWarn,
         h('div', { class: 'muted small' }, t('set_temp_hint')),
-        h('div', { class: 'h-sec' }, t('set_resp_len')), lenSeg);
+        h('div', { class: 'h-sec' }, t('set_resp_len')), lenSeg,
+        h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('set_debug')), h('label', { class: 'sw' }, dbg, h('i'))));
       A.scheduleMarquees();
     }
 

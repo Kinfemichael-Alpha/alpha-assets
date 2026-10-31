@@ -105,6 +105,25 @@ class LlmService(ctx: Context, private val settings: SettingsStore) {
         system: String, contents: JSONArray, maxTokens: Int, temperature: Double, json: Boolean,
         isCancelled: () -> Boolean, onDelta: (String) -> Unit,
     ): StreamResult {
+        var emitted = false
+        val counting: (String) -> Unit = { emitted = true; onDelta(it) }
+        var attempt = 0
+        while (true) {
+            try {
+                return streamOnce(system, contents, maxTokens, temperature, json, isCancelled, counting)
+            } catch (e: GeminiError) {
+                val transient = e.key == "online_no_internet" || e.key == "online_unreachable"
+                if (!transient || emitted || isCancelled() || attempt >= 2) throw e
+                attempt++
+                try { Thread.sleep(900L * attempt) } catch (_: InterruptedException) { }
+            }
+        }
+    }
+
+    private fun streamOnce(
+        system: String, contents: JSONArray, maxTokens: Int, temperature: Double, json: Boolean,
+        isCancelled: () -> Boolean, onDelta: (String) -> Unit,
+    ): StreamResult {
         val id = activeId(); val key = keyOf(id)
         if (key.isEmpty()) throw GeminiError("online_need_key")
         val type = preset(id)?.optString("type") ?: "gemini"
@@ -132,7 +151,8 @@ class WireClient {
     fun abort() { try { conn?.disconnect() } catch (_: Exception) { } }
 
     private fun mapIo(e: IOException): GeminiError = when (e) {
-        is UnknownHostException, is SocketTimeoutException, is java.net.ConnectException -> GeminiError("online_no_internet", e.toString())
+        is UnknownHostException, is java.net.ConnectException -> GeminiError("online_no_internet", e.toString())
+        is SocketTimeoutException -> GeminiError("online_unreachable", e.toString())
         is SSLException -> GeminiError("online_ssl", e.toString())
         else -> GeminiError("online_unreachable", e.toString())
     }

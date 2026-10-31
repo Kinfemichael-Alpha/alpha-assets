@@ -53,7 +53,7 @@ class ApiRouter(private val ctx: Context) {
         return try {
             Pair(200, route(method, path, body))
         } catch (e: ApiError) {
-            Pair(e.status, JSONObject().put("error", e.key).put("message", msg(e.key) + chat.lastDetail.let { if (e.status == 502 && it.isNotEmpty()) "\n($it)" else "" }))
+            Pair(e.status, JSONObject().put("error", e.key).put("message", msg(e.key) + chat.lastDetail.let { if (e.status == 502 && it.isNotEmpty() && settings.getBool("debug_details")) "\n($it)" else "" }))
         } catch (e: Exception) {
             Pair(500, JSONObject().put("error", "server_error").put("message", msg("err_server")))
         }
@@ -143,6 +143,7 @@ class ApiRouter(private val ctx: Context) {
             .put("max_tokens", settings.getInt("max_tokens"))
             .put("temperature", settings.getDouble("temperature"))
             .put("resp_len", settings.getString("resp_len"))
+            .put("debug_details", settings.getBool("debug_details"))
     }
 
     private fun syncNow(): JSONObject {
@@ -332,6 +333,10 @@ class ApiRouter(private val ctx: Context) {
             val d = b.optDouble("temperature", -1.0)
             if (d.isNaN() || d < 0.0 || d > 1.0) throw ApiError(400, "err_bad_request")
             settings.set("temperature", d)
+        }
+        if (b.has("debug_details")) {
+            if (b.opt("debug_details") !is Boolean) throw ApiError(400, "err_bad_request")
+            settings.set("debug_details", b.getBoolean("debug_details"))
         }
         if (b.has("resp_len")) {
             val r = b.optString("resp_len")

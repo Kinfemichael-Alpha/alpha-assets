@@ -58,7 +58,12 @@
           if (j.status === 'error') {
             tb.remove();
             bubble('ai', (j.error || t('err_server')) + (j.detail ? '\n(' + j.detail + ')' : ''), 'err');
-            if (j.restore) { input.value = j.restore; autoGrow(); }
+            if (j.restore) {
+              input.value = j.restore; autoGrow();
+              const users = list.querySelectorAll('.msg.user');
+              const lastUser = users[users.length - 1];
+              if (lastUser && lastUser.textContent === j.restore) lastUser.remove();
+            }
             if (ai && j.text) offerContinue(ai);
           } else {
             if (j.finish === 'MAX_TOKENS') { bubble('ai', t('ai_cut_limit'), 'note'); offerContinue(ai); }

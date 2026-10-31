@@ -267,7 +267,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
             persist()
         }
         val o = JSONObject().put("status", j.status).put("text", j.text).put("finish", j.finish)
-            .put("error", j.error).put("detail", j.detail).put("restore", j.restore).put("usage", usage())
+            .put("error", j.error).put("detail", if (settings.getBool("debug_details")) j.detail else "").put("restore", j.restore).put("usage", usage())
         o.put("warn", usage() >= 0.8)
         return o
     }

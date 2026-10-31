@@ -176,7 +176,8 @@ class GeminiClient {
     }
 
     private fun mapIo(e: IOException): GeminiError = when (e) {
-        is UnknownHostException, is SocketTimeoutException, is java.net.ConnectException -> GeminiError("online_no_internet", e.toString())
+        is UnknownHostException, is java.net.ConnectException -> GeminiError("online_no_internet", e.toString())
+        is SocketTimeoutException -> GeminiError("online_unreachable", e.toString())
         is SSLException -> GeminiError("online_ssl", e.toString())
         else -> GeminiError("online_unreachable", e.toString())
     }
