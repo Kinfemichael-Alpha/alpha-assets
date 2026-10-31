@@ -132,7 +132,6 @@
       A.bar({ title: t('ai_title'), left: [saveBtn], right: [A.ads.pill(), newBtn] }),
       mem,
       h('div', { class: 'chat-wrap' }, list, composer));
-    el.querySelector('.chat-wrap').style.background = 'var(--paper)';
 
     async function enter() {
       lock(true);
