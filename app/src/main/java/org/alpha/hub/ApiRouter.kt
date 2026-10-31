@@ -275,7 +275,7 @@ class ApiRouter(private val ctx: Context) {
     private fun interstitialAd(): JSONObject {
         val now = System.currentTimeMillis()
         val bridge = ads
-        val allowed = bridge != null && settings.getBool("online_mode") && now > settings.getLong("skip_until") && now - settings.getLong("last_inter") > 180000L
+        val allowed = bridge != null && bridge.isOnline() && now > settings.getLong("skip_until") && now - settings.getLong("last_inter") > 180000L
         if (!allowed) return JSONObject().put("shown", false)
         settings.set("last_inter", now)
         bridge!!.showInterstitial { }

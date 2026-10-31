@@ -1,6 +1,10 @@
 package org.alpha.hub
 
 import android.app.Activity
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.widget.FrameLayout
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdListener
@@ -20,6 +24,7 @@ interface AdBridge {
     fun setBanner(visible: Boolean)
     fun showRewarded(done: (Boolean) -> Unit)
     fun showInterstitial(done: (Boolean) -> Unit)
+    fun isOnline(): Boolean
 }
 
 object AdUnits {
@@ -34,8 +39,28 @@ class AdManager(private val act: Activity, private val container: FrameLayout, p
     private var rewarded: RewardedAd? = null
     private var wantBanner = true
     private var ready = false
+    @Volatile private var net = false
+    private val cm = act.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    private fun checkNet(): Boolean = try {
+        cm.activeNetwork?.let { n -> cm.getNetworkCapabilities(n)?.let { it.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) && it.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) } } == true
+    } catch (_: Throwable) { false }
+
+    override fun isOnline(): Boolean = net
+
+    private fun watchNet() {
+        net = checkNet()
+        try {
+            cm.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) { net = true; act.runOnUiThread { apply(); banner?.loadAd(AdRequest.Builder().build()) } }
+                override fun onLost(network: Network) { net = checkNet(); act.runOnUiThread { apply() } }
+                override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) { net = checkNet(); act.runOnUiThread { apply() } }
+            })
+        } catch (_: Throwable) { }
+    }
 
     init {
+        watchNet()
         Thread {
             try {
                 MobileAds.setRequestConfiguration(RequestConfiguration.Builder()
@@ -62,7 +87,7 @@ class AdManager(private val act: Activity, private val container: FrameLayout, p
     }
 
     private fun apply() {
-        val show = wantBanner && settings.getBool("online_mode") && banner != null
+        val show = wantBanner && net && banner != null
         container.visibility = if (show) android.view.View.VISIBLE else android.view.View.GONE
     }
 
