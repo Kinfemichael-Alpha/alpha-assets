@@ -41,9 +41,22 @@ android {
         }
     }
 
+    val relStore = System.getenv("ALPHA_KEYSTORE")
+    if (relStore != null && file(relStore).exists()) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(relStore)
+                storePassword = System.getenv("ALPHA_STORE_PASSWORD")
+                keyAlias = System.getenv("ALPHA_KEY_ALIAS")
+                keyPassword = System.getenv("ALPHA_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     compileOptions {

@@ -1,0 +1,51 @@
+name: Release AAB
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Fetch llama.cpp
+        run: git clone --depth 1 --branch b9999 https://github.com/ggml-org/llama.cpp app/src/main/cpp/llama.cpp
+      - name: Install NDK and CMake
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;26.3.11579264" "cmake;3.22.1" > /dev/null
+      - name: Decode keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ALPHA_KEYSTORE_B64 }}
+        run: echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/alpha-release.jks"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build signed AAB and APK
+        env:
+          ALPHA_KEYSTORE: ${{ runner.temp }}/alpha-release.jks
+          ALPHA_STORE_PASSWORD: ${{ secrets.ALPHA_STORE_PASSWORD }}
+          ALPHA_KEY_ALIAS: ${{ secrets.ALPHA_KEY_ALIAS }}
+          ALPHA_KEY_PASSWORD: ${{ secrets.ALPHA_KEY_PASSWORD }}
+        run: |
+          set -o pipefail
+          gradle :app:bundleRelease :app:assembleRelease --no-daemon 2>&1 | tee build.log
+      - name: Report errors
+        if: failure()
+        run: |
+          grep -E "error:|e: |FAILED|What went wrong|CMake Error|ninja: |fatal|undefined reference|Execution failed|Could not" build.log | head -25 | cut -c1-400 | while IFS= read -r l; do echo "::error::$l"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alpha-ai-release
+          path: |
+            app/build/outputs/bundle/release/app-release.aab
+            app/build/outputs/apk/release/app-release.apk
+      - name: Publish AAB to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/bundle/release/app-release.aab alpha-ai-release.aab
+          gh release view latest >/dev/null 2>&1 || gh release create latest --prerelease --title "Latest build" --notes "Newest build."
+          gh release upload latest alpha-ai-release.aab --clobber
