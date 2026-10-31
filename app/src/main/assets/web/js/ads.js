@@ -20,7 +20,7 @@
 
   ads.pill = function pill() {
     const el = h('button', { class: 'bar-btn txt pill', type: 'button', 'aria-label': t('pts_title') });
-    el.addEventListener('click', () => ads.gate());
+    el.addEventListener('click', async () => { await ads.refresh(); ads.gate(); });
     ads.pills.add(el);
     el.draw = () => {
       const s = ads.status;
@@ -28,6 +28,20 @@
       el.classList.toggle('off', !(s && s.points > 0));
     };
     el.draw();
+    return el;
+  };
+  ads.card = function card() {
+    const val = h('div', { class: 'pc-n' });
+    const wb = h('button', { class: 'btn sm', type: 'button' }, t('pts_watch'));
+    wb.addEventListener('click', async () => { await ads.watch(); });
+    const ub = h('button', { class: 'btn sm ghost', type: 'button' }, t('pts_use'));
+    ub.addEventListener('click', async () => { await ads.refresh(); ads.gate(); });
+    const el = h('div', { class: 'card pcard' },
+      h('div', { class: 'pc-top' }, A.icon('star'), h('div', { class: 'grow' }, h('div', { class: 'pc-t' }, t('pts_card_title')), h('div', { class: 'muted small' }, t('pts_card_sub'))), val),
+      h('div', { class: 'pc-b' }, wb, ub));
+    el.draw = () => { val.textContent = String(ads.status ? ads.status.points || 0 : 0); };
+    el.draw();
+    ads.pills.add(el);
     return el;
   };
   ads.draw = function draw() {
@@ -100,4 +114,5 @@
   };
 
   ads.start();
+  ads.refresh();
 })();

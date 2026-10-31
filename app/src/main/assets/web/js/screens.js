@@ -6,6 +6,7 @@
   /* ------------------------------------------------------------ Splash: 5 ሰከንድ፣ ከ 20 አኒሜሽን አንዱ በዘፈቀደ */
   const FIDEL = ['ሀሁሂሃሄህሆ', 'ለሉሊላሌልሎ', 'ሐሑሒሓሔሕሖ', 'መሙሚማሜምሞ', 'ሠሡሢሣሤሥሦ', 'ረሩሪራሬርሮ', 'ሰሱሲሳሴስሶ', 'ሸሹሺሻሼሽሾ'];
   const MARK = '<svg viewBox="0 0 200 200" aria-hidden="true"><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"><path d="M58 160L128 40M58 160L58 118M86 112L128 112" stroke="currentColor"/><path d="M128 40L128 160" stroke="#FFD54A"/></g></svg>';
+  A.EMBLEM = MARK;
   A.screens.splash = function splash() {
     const n = Math.floor(Math.random() * 20);   // sp0 .. sp19
     const letters = 'ALPHA AI'.split('').map((c, i) => h('span', { class: 'ch', style: { '--i': i } }, c === ' ' ? ' ' : c));
@@ -38,7 +39,7 @@
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') done(true); });
     const langBtn = h('button', { class: 'bar-btn txt', type: 'button', onclick: () => A.setLang(A.S.lang === 'AM' ? 'EN' : 'AM') }, t('lang_btn'));
     const el = A.page(
-      A.bar({ title: t('app_title'), back: false, right: [langBtn] }),
+      A.bar({ title: t('app_title'), back: false, right: [langBtn], pts: false }),
       h('div', { class: 'scroll ruled stack' },
         h('h1', { class: 'hello' }, t('welcome_title')),
         h('div', { class: 'card stack' },
@@ -59,6 +60,7 @@
       A.bar({ title: t('dashboard_title'), back: false, right: [langBtn, setBtn] }),
       h('div', { class: 'scroll ruled stack' },
         h('h1', { class: 'hello' }, nick ? t('home_greeting', { name: nick }) : t('dashboard_question')),
+        A.ads.card(),
         h('div', { class: 'tiles' },
           tile('main c-green', 'chat', t('btn_ai'), 'ai'),
           tile('c-blue', 'quiz', t('btn_quiz'), 'quiz'),

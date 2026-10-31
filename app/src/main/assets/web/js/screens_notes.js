@@ -94,7 +94,7 @@
 
     const draw = () => (tab === 'new' ? drawNew() : drawSaved());
     const tabs = A.tabs([['new', t('notes_tab_new')], ['saved', t('notes_tab_saved')]], tab, async (id) => { tab = id; if (id === 'saved') await load(); draw(); });   // የተቀመጡ ሲከፈት ዝርዝሩ ይታደሳል
-    const el = A.page(A.bar({ title: t('notes_title'), right: [A.ads.pill()] }), h('div', { class: 'scroll ruled stack' }, tabs, body));
+    const el = A.page(A.bar({ title: t('notes_title') }), h('div', { class: 'scroll ruled stack' }, tabs, body));
     return {
       el,
       getParams: () => ({ tab, draft }),

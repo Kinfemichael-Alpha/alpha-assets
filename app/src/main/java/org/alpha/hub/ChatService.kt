@@ -82,14 +82,60 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
 
     @Synchronized fun stop() { job?.let { it.cancelled = true; llm.abort() } }
 
-    /** ውይይቱን ወደ ፋይል ያስቀምጣል (በስልኩ ላይ ብቻ) / save chat locally */
+    private fun chatsDir(): File = File(ctx.filesDir, "chats").apply { mkdirs() }
+    private fun validName(n: String) = Regex("^chat_[0-9_]+\\.json$").matches(n)
+
     @Synchronized fun save(): JSONObject {
         if (history.none { !it.error }) throw ApiError(400, "chat_save_empty")
-        val dir = File(ctx.filesDir, "chats").apply { mkdirs() }
         val name = "chat_" + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date()) + ".json"
         val a = JSONArray(); for (m in history) if (!m.error) a.put(JSONObject().put("role", m.role).put("content", m.content))
-        File(dir, name).writeText(JSONObject().put("messages", a).toString(), Charsets.UTF_8)
+        val title = history.firstOrNull { it.role == "user" && !it.error }?.content?.replace(Regex("\\s+"), " ")?.take(60) ?: ""
+        File(chatsDir(), name).writeText(JSONObject().put("title", title).put("messages", a).toString(), Charsets.UTF_8)
         return JSONObject().put("ok", true).put("name", name)
+    }
+
+    fun saved(): JSONObject {
+        val out = JSONArray()
+        val files = chatsDir().listFiles { f -> validName(f.name) }?.sortedByDescending { it.lastModified() } ?: emptyList()
+        for (f in files) {
+            try {
+                val o = JSONObject(f.readText(Charsets.UTF_8))
+                val ms = o.getJSONArray("messages")
+                var title = o.optString("title")
+                if (title.isEmpty()) for (i in 0 until ms.length()) { val m = ms.getJSONObject(i); if (m.getString("role") == "user") { title = m.getString("content").replace(Regex("\\s+"), " ").take(60); break } }
+                out.put(JSONObject().put("name", f.name).put("title", title).put("count", ms.length()).put("time", f.lastModified()))
+            } catch (_: Exception) { }
+        }
+        return JSONObject().put("items", out)
+    }
+
+    @Synchronized fun open(name: String): JSONObject {
+        if (job?.status == "running") throw ApiError(409, "err_busy")
+        if (!validName(name)) throw ApiError(404, "err_not_found")
+        val f = File(chatsDir(), name)
+        if (!f.exists()) throw ApiError(404, "err_not_found")
+        val ms = try { JSONObject(f.readText(Charsets.UTF_8)).getJSONArray("messages") } catch (_: Exception) { throw ApiError(404, "err_not_found") }
+        history.clear()
+        for (i in 0 until ms.length()) { val m = ms.getJSONObject(i); history.add(Msg(m.getString("role"), m.getString("content"))) }
+        job = null; persist()
+        return view()
+    }
+
+    fun deleteSaved(name: String): JSONObject {
+        if (!validName(name)) throw ApiError(404, "err_not_found")
+        File(chatsDir(), name).delete()
+        return saved()
+    }
+
+    @Synchronized fun regenerate(): JSONObject {
+        if (job?.status == "running") throw ApiError(409, "err_busy")
+        val last = history.lastOrNull()
+        if (last == null || last.role != "assistant" || history.size < 2) throw ApiError(400, "err_bad_request")
+        val u = history[history.size - 2]
+        if (u.role != "user") throw ApiError(400, "err_bad_request")
+        history.removeAt(history.size - 1)
+        history.add(Msg("assistant", ""))
+        return startJob(continuation = false, userText = u.content)
     }
 
     @Synchronized fun send(text: String): JSONObject {

@@ -96,6 +96,10 @@ class ApiRouter(private val ctx: Context) {
         "GET /api/chat/poll" -> chat.poll(b.optString("job_id"))
         "POST /api/chat/new" -> chat.newChat()
         "POST /api/chat/save" -> chatSave()
+        "GET /api/chat/saved" -> chat.saved()
+        "POST /api/chat/open" -> chat.open(b.optString("name"))
+        "POST /api/chat/delete" -> chat.deleteSaved(b.optString("name"))
+        "POST /api/chat/regenerate" -> chat.regenerate()
         // ቅንብሮች ማያ የሚጠይቀው ዝርዝር (ሞዴሎች ገና አልተሰሩም - ባዶ ዝርዝር) / settings screen list; models not ported yet
         "GET /api/job" -> study.job(b.optString("id"))
         "GET /api/quiz/list" -> study.quizList()

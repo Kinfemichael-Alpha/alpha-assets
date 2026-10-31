@@ -19,8 +19,35 @@
       const rich = role === 'ai' && !extra && text;
       const b = h('div', { class: 'msg ' + role + (extra ? ' ' + extra : '') }, rich ? null : text);
       if (rich) A.md(b, text);
+      b._raw = text || '';
       list.append(b); toBottom(); return b;
     };
+    const actBtn = (icon, label, fn) => {
+      const b = h('button', { class: 'act', type: 'button', 'aria-label': label, title: label }, A.icon(icon));
+      b.addEventListener('click', fn);
+      return b;
+    };
+    const decorate = (b, role) => {
+      if (!b || !b._raw) return;
+      const old = b.querySelector('.acts'); if (old) old.remove();
+      const row = h('div', { class: 'acts' }, actBtn('copy', t('act_copy'), () => A.copy(b._raw)));
+      if (role === 'user') row.append(actBtn('edit', t('act_edit'), () => { input.value = b._raw; autoGrow(); input.focus(); }));
+      else {
+        list.querySelectorAll('.msg.ai .regen').forEach((x) => x.remove());
+        row.append(actBtn('refresh', t('act_regen'), () => regenerate(b)));
+        row.lastChild.classList.add('regen');
+      }
+      b.append(row);
+    };
+    async function regenerate(b) {
+      if (pending) return;
+      try {
+        const r = await A.post('/api/chat/regenerate');
+        b.querySelector('.acts') && b.querySelector('.acts').remove();
+        A.clear(b).append(h('span', { class: 'dots' }, h('i'), h('i'), h('i')));
+        waitReply(r.job_id, h('span'), b);
+      } catch (e) { A.info(e.message); }
+    }
     const typing = () => {
       const b = h('div', { class: 'msg ai' }, h('span', { class: 'dots', 'aria-label': t('ai_processing') }, h('i'), h('i'), h('i')));
       list.append(b); toBottom(); return b;
@@ -29,12 +56,26 @@
     const lock = (on) => { input.disabled = on; sendBtn.disabled = on; };
     const setSend = (busy) => { sendBtn.textContent = busy ? t('btn_stop') : t('send_btn'); sendBtn.classList.toggle('stop', busy); };
 
-    function welcome() { bubble('ai', nick ? t('ai_welcome_name', { name: nick }) : t('ai_welcome')); }
+    function welcome() {
+      if (list.querySelector('.hero')) return;
+      const mark = h('div', { class: 'hero-mark', 'aria-hidden': 'true' });
+      mark.innerHTML = '<svg viewBox="0 0 200 200"><g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"><path d="M58 160L128 40M58 160L58 118M86 112L128 112" stroke="currentColor"/><path d="M128 40L128 160" stroke="#FFD54A"/></g></svg>';
+      const chip = (k) => h('button', { class: 'chip', type: 'button', onclick: () => { input.value = t(k + '_t'); autoGrow(); input.focus(); } }, t(k));
+      list.append(h('div', { class: 'hero' }, mark,
+        h('h2', { class: 'hero-h' }, nick ? t('ai_hello_name', { name: nick }) : t('ai_hello')),
+        h('p', { class: 'hero-s' }, t('ai_hello_sub')),
+        h('div', { class: 'chips' }, chip('ai_s1'), chip('ai_s2'), chip('ai_s3'), chip('ai_s4'))));
+    }
+    const dropHero = () => { const x = list.querySelector('.hero'); if (x) x.remove(); };
 
     function render(view) {
       A.clear(list);
       if (!view.messages.length) welcome();
-      view.messages.forEach((m) => bubble(m.role === 'user' ? 'user' : 'ai', m.content, m.error ? 'err' : ''));
+      const pend = !!view.pending;
+      view.messages.forEach((m, i) => {
+        const b = bubble(m.role === 'user' ? 'user' : 'ai', m.content, m.error ? 'err' : '');
+        if (!m.error && !(pend && i >= view.messages.length - 1)) decorate(b, m.role === 'user' ? 'user' : 'ai');
+      });
       setUsage(view.usage || 0);
     }
 
@@ -46,7 +87,7 @@
       let ai = null;
       const show = (text) => {
         if (!ai) { tb.remove(); ai = target || bubble('ai', ''); }
-        A.md(ai, text);
+        A.md(ai, text); ai._raw = text;
         toBottom();
       };
       try {
@@ -71,6 +112,7 @@
             if (j.finish === 'MAX_TOKENS') { bubble('ai', t('ai_cut_limit'), 'note'); offerContinue(ai); }
             else if (j.finish === 'NETWORK') { bubble('ai', j.error || t('ai_cut_net'), 'note'); offerContinue(ai); }
             if (j.warn) bubble('ai', t('ai_memory_warn'), 'note');
+            if (ai && j.text) decorate(ai, 'ai');
           }
           break;
         }
@@ -101,8 +143,8 @@
       if (pending) { try { await A.post('/api/chat/stop'); } catch (e) {} return; }
       const text = input.value.trim();
       if (!text) return;
-      input.value = ''; autoGrow();
-      bubble('user', text);
+      input.value = ''; autoGrow(); dropHero();
+      decorate(bubble('user', text), 'user');
       const tb = typing();
       try {
         const r = await A.post('/api/chat/send', { text });
@@ -118,20 +160,31 @@
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!pending) send(); } });
     sendBtn.addEventListener('click', send);
 
-    /* |save|: ውይይቱን ወደ JSON ይልካል */
-    const saveBtn = h('button', { class: 'bar-btn txt', type: 'button' }, t('btn_save'));
-    saveBtn.addEventListener('click', async () => {
-      try { const r = await A.post('/api/chat/save'); A.info(r.message, t('btn_save')); } catch (e) { A.info(e.message); }
-    });
-    const newBtn = h('button', { class: 'bar-btn txt', type: 'button' }, t('ai_new_chat'));
-    newBtn.addEventListener('click', async () => {
-      if (pending) return A.toast(t('err_busy'));
-      if (!(await A.confirm(t('confirm_new_chat')))) return;   // ህግ 6
-      try { render(await A.post('/api/chat/new')); } catch (e) { A.info(e.message); }
+    const menuBtn = h('button', { class: 'bar-btn', type: 'button', 'aria-label': t('ai_menu') }, A.icon('dots'));
+    menuBtn.addEventListener('click', () => {
+      const item = (icon, label, fn) => {
+        const b = h('button', { class: 'menu-item', type: 'button' }, A.icon(icon), h('span', null, label));
+        b.addEventListener('click', () => { m.close(); fn(); });
+        return b;
+      };
+      const m = A.modal({
+        title: t('ai_menu'), dismiss: true,
+        body: h('div', { class: 'menu' },
+          item('plus', t('ai_new_chat'), async () => {
+            if (pending) return A.toast(t('err_busy'));
+            if (!(await A.confirm(t('confirm_new_chat')))) return;
+            try { render(await A.post('/api/chat/new')); } catch (e) { A.info(e.message); }
+          }),
+          item('save', t('btn_save'), async () => {
+            try { const r = await A.post('/api/chat/save'); A.toast(r.message, 2600); } catch (e) { A.info(e.message); }
+          }),
+          item('folder', t('chats_menu'), () => { if (pending) return A.toast(t('err_busy')); A.go('chats'); })),
+        actions: [{ label: t('close'), kind: 'ghost' }],
+      });
     });
 
     const el = A.page(
-      A.bar({ title: t('ai_title'), left: [saveBtn], right: [A.ads.pill(), newBtn] }),
+      A.bar({ title: t('ai_title'), right: [menuBtn] }),
       mem,
       h('div', { class: 'chat-wrap' }, list, composer));
 
@@ -177,6 +230,33 @@
       onShow() { enter(); },
       onLeave() { alive = false; A.post('/api/ai/leave').catch(() => {}); },   // ማያ ገጹን ሲለቅ ሞዴሉ ከ RAM ወዲያውኑ ይለቀቃል
     };
+  };
+
+  A.screens.chats = function chats() {
+    const body = h('div', { class: 'stack' });
+    const fmtDate = (ms) => new Date(ms).toLocaleString(A.S.lang === 'AM' ? 'am-ET' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+    async function load() {
+      let r;
+      try { r = await A.get('/api/chat/saved'); } catch (e) { return A.info(e.message); }
+      A.clear(body);
+      if (!r.items.length) { body.append(h('p', { class: 'muted' }, t('chats_empty'))); return; }
+      r.items.forEach((it) => {
+        const open = h('button', { class: 'grow chat-item', type: 'button' },
+          h('div', { class: 'ci-t' }, it.title || '...'),
+          h('div', { class: 'muted small' }, fmtDate(it.time) + '  ·  ' + t('saved_msgs', { n: it.count })));
+        open.addEventListener('click', async () => {
+          if (!(await A.confirm(t('chats_open_confirm')))) return;
+          try { await A.post('/api/chat/open', { name: it.name }); A.back(); } catch (e) { A.info(e.message); }
+        });
+        const del = h('button', { class: 'bar-btn', type: 'button', 'aria-label': t('btn_delete') }, A.icon('trash'));
+        del.addEventListener('click', async () => {
+          if (!(await A.confirm(t('chats_delete_confirm')))) return;
+          try { await A.post('/api/chat/delete', { name: it.name }); load(); } catch (e) { A.info(e.message); }
+        });
+        body.append(h('div', { class: 'item' }, open, del));
+      });
+    }
+    return { el: A.page(A.bar({ title: t('chats_title') }), h('div', { class: 'scroll ruled stack' }, body)), onShow() { load(); } };
   };
 
   /* ------------------------------------------------------------ ፈተና ማዕከል */
@@ -253,7 +333,7 @@
     }
 
     const tabs = A.tabs([['new', t('quiz_tab_new')], ['saved', t('quiz_tab_saved')], ['exams', t('quiz_tab_exams')]], tab, (id) => { tab = id; draw(); });
-    const el = A.page(A.bar({ title: t('quiz_title'), right: [A.ads.pill()] }), h('div', { class: 'scroll ruled stack' }, tabs, body));
+    const el = A.page(A.bar({ title: t('quiz_title') }), h('div', { class: 'scroll ruled stack' }, tabs, body));
     return {
       el,
       getParams: () => ({ tab }),
