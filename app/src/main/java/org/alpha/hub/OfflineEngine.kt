@@ -63,18 +63,31 @@ class OfflineEngine(private val ctx: Context) {
 
     fun fits(sizeMb: Int, minRamGb: Int): Boolean = totalRamMb() >= minRamGb * 900
 
+    class Risk(val level: String, val needMb: Int, val freeMb: Int)
+
+    fun risk(file: File): Risk {
+        val size = (file.length() / 1048576L).toInt()
+        val free = freeRamMb()
+        val c = contextFor(totalRamMb())
+        val anon = (250 + size * 0.15 * (c / 1024.0)).toInt()
+        val level = if (anon > free) "heavy" else if (size > free + 200) "slow" else "ok"
+        return Risk(level, anon, free)
+    }
+
+    private val marker get() = File(ctx.filesDir, "load_marker.txt")
+
     @Synchronized
     fun load(file: File) {
         if (!supported) throw OfflineError("offline_unavailable")
         if (handle != 0L && loadedPath == file.path) return
         unload()
-        val needMb = (file.length() / 1048576L).toInt() + 350
-        val free = freeRamMb()
-        if (needMb > free + 200) throw OfflineError("model_ram_low", "$needMb|$free")
+        val rk = risk(file)
+        if (rk.level == "heavy") throw OfflineError("model_ram_low", "${rk.needMb}|${rk.freeMb}")
         val c = contextFor(totalRamMb())
+        try { marker.writeText(file.name) } catch (_: Exception) { }
         val threads = Runtime.getRuntime().availableProcessors().coerceIn(2, if (turbo()) 8 else 4)
         val h = try { bridge.nativeLoad(file.path, c, threads, true) } catch (e: Throwable) { throw OfflineError("model_load_failed", e.toString()) }
-        if (h == 0L) throw OfflineError("model_load_failed")
+        if (h == 0L) { try { marker.delete() } catch (_: Exception) { }; throw OfflineError("model_load_failed") }
         handle = h; loadedPath = file.path; nCtx = c
     }
 
@@ -82,6 +95,11 @@ class OfflineEngine(private val ctx: Context) {
     fun unload() {
         if (handle != 0L) { try { bridge.nativeFree(handle) } catch (_: Throwable) { } }
         handle = 0L; loadedPath = ""; nCtx = 0
+        try { marker.delete() } catch (_: Exception) { }
+    }
+
+    fun crashedModel(): String {
+        return try { if (marker.exists()) marker.readText().trim().also { marker.delete() } else "" } catch (_: Exception) { "" }
     }
 
     fun isLoaded(path: String) = handle != 0L && loadedPath == path

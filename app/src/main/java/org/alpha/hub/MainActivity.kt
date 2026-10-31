@@ -100,6 +100,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        router.onBackground()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) router.onBackground()
+    }
+
     // Back ቁልፍ: በ WebView ታሪክ ውስጥ ወደ ኋላ ይመለሳል
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {

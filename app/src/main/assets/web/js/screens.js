@@ -113,7 +113,13 @@
     })();
     try { await Promise.all([A.sleep(5000), load]); } catch (e) { return fatal(e); }
     // ራስ-ሰር አቅጣጫ: የመጀመሪያ ጊዜ -> አማራጭ ቅጽል ስም ገጽ፣ ከዚያ በኋላ -> ዋና ገጽ
-    A.go(A.S.state.onboarded ? 'home' : 'welcome', {}, { root: true, force: true });
+    await A.go(A.S.state.onboarded ? 'home' : 'welcome', {}, { root: true, force: true });
+    if (A.S.state.crash_model) {
+      const name = A.S.state.crash_model;
+      A.S.state.crash_model = '';
+      A.post('/api/crash/ack').catch(() => {});
+      await A.info(t('crash_notice', { name }), t('notice_title'));
+    }
   }
   boot();
 })();

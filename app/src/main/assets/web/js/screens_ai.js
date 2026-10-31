@@ -133,10 +133,15 @@
       mem,
       h('div', { class: 'chat-wrap' }, list, composer));
 
-    async function enter() {
+    async function enter(force) {
       lock(true);
       let r;
-      try { r = await A.post('/api/ai/enter'); } catch (e) { A.info(e.message).then(() => A.back()); return; }
+      try { r = await A.post('/api/ai/enter', { force: !!force }); } catch (e) { A.info(e.message).then(() => A.back()); return; }
+      if (r.warn) {
+        if (await A.confirm(r.message)) return enter(true);
+        A.back();
+        return;
+      }
       if (r.locked) {   // ሞዴሉን ወደ RAM ከመጫን በፊት መዳረሻ ያስፈልጋል
         A.ads.setStatus(r.ads);
         if (await A.ads.gate()) return enter();

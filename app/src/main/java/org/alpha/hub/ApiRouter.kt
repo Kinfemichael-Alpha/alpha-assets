@@ -38,6 +38,12 @@ class ApiRouter(private val ctx: Context) {
     // የ AI ውይይት (Gemini ቀጥታ መልስ) / AI chat with live Gemini streaming
     private val engine = OfflineEngine(ctx).also { it.turbo = { System.currentTimeMillis() < settings.getLong("turbo_until") } }
     private val models = ModelManager(ctx, settings, engine) { msg(it) }
+    @Volatile private var crashModel = ""
+    init {
+        val c = engine.crashedModel()
+        if (c.isNotEmpty()) { crashModel = c; if (settings.getString("active_model") == c) settings.set("active_model", "") }
+    }
+    fun onBackground() { Thread { chat.stop(); engine.unload() }.start() }
     private val llm = LlmService(ctx, settings)
     private val chat = ChatService(ctx, settings, llm, engine, models) { msg(it) }
     private val study = StudyService(ctx, settings, llm, engine, models) { msg(it) }
@@ -75,7 +81,8 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/library/read" -> libraryRead(b)
         "POST /api/library/delete" -> libraryDelete(b)
         // ---- AI ውይይት
-        "POST /api/ai/enter" -> aiEnter()
+        "POST /api/ai/enter" -> aiEnter(b)
+        "POST /api/crash/ack" -> { crashModel = ""; JSONObject().put("ok", true) }
         "POST /api/ai/leave" -> { chat.stop(); engine.unload(); JSONObject().put("ok", true) }
         "GET /api/providers" -> JSONObject().put("providers", llm.providers())
         "POST /api/provider/save" -> { llm.save(b); JSONObject().put("providers", llm.providers()).put("settings", settingsView()) }
@@ -190,12 +197,14 @@ class ApiRouter(private val ctx: Context) {
         catch (e: GeminiError) { throw ApiError(502, e.key).also { chat.lastDetail = e.technical } }
     }
 
-    private fun aiEnter(): JSONObject {
+    private fun aiEnter(b: JSONObject): JSONObject {
         if (settings.getBool("online_mode")) return JSONObject().put("mode", "online").put("ready", true).put("locked", false)
         val off = JSONObject().put("mode", "offline").put("ready", false)
         if (!engine.supported) return off.put("message", msg("offline_unavailable"))
         val f = models.activeFile() ?: return off.put("message", msg("no_active_model_hint"))
         if (engine.isLoaded(f.path)) return off.put("ready", true).put("locked", false)
+        val rk = engine.risk(f)
+        if (rk.level == "slow" && !b.optBoolean("force", false)) return off.put("warn", true).put("message", msg("model_slow_warn"))
         return off.put("job_id", study.runJob { engine.load(f); JSONObject() }.getString("job_id"))
     }
 
@@ -250,6 +259,7 @@ class ApiRouter(private val ctx: Context) {
         .put("version", APP_VERSION)
         .put("nickname", settings.getString("nickname"))
         .put("onboarded", settings.getBool("onboarded"))
+        .put("crash_model", crashModel)
         .put("settings", settingsView())
         .put("themes", themes)
         .put("ads", adsStatus())
