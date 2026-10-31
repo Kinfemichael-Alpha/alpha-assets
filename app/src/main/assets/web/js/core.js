@@ -57,6 +57,85 @@
     star: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.9-4.7 4.5 1.2 6.4L12 17.4 6.3 20.5l1.2-6.4L2.8 9.6l6.4-.9z"/></svg>',
     phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>',
   };
+  const INLINE = /(`[^`\n]+`)|(\*\*[^*\n]+?\*\*)|(__[^_\n]+?__)|(~~[^~\n]+?~~)|(\*[^*\s][^*\n]*?\*)|((?<![\w])_[^_\s][^_\n]*?_(?![\w]))/;
+  function inline(parent, s) {
+    for (;;) {
+      const m = INLINE.exec(s);
+      if (!m) break;
+      if (m.index) parent.append(document.createTextNode(s.slice(0, m.index)));
+      const tok = m[0];
+      let node;
+      if (m[1]) node = h('code', null, tok.slice(1, -1));
+      else if (m[2] || m[3]) { node = h('strong'); inline(node, tok.slice(2, -2)); }
+      else if (m[4]) { node = h('del'); inline(node, tok.slice(2, -2)); }
+      else { node = h('em'); inline(node, tok.slice(1, -1)); }
+      parent.append(node);
+      s = s.slice(m.index + tok.length);
+    }
+    if (s) parent.append(document.createTextNode(s));
+  }
+  function lines(parent, arr) {
+    arr.forEach((ln, i) => { if (i) parent.append(document.createElement('br')); inline(parent, ln); });
+  }
+  A.md = function md(el, text) {
+    el.textContent = '';
+    el.classList.add('md');
+    const src = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+    let i = 0;
+    while (i < src.length) {
+      const ln = src[i];
+      if (/^\s*```/.test(ln)) {
+        const buf = []; i++;
+        while (i < src.length && !/^\s*```/.test(src[i])) buf.push(src[i++]);
+        i++;
+        el.append(h('pre', null, h('code', null, buf.join('\n'))));
+        continue;
+      }
+      if (!ln.trim()) { i++; continue; }
+      let m;
+      if ((m = /^\s{0,3}(#{1,6})\s+(.*)$/.exec(ln))) {
+        const hd = h('h' + Math.min(6, m[1].length + 2), { class: 'md-h' });
+        inline(hd, m[2].replace(/\s*#+\s*$/, ''));
+        el.append(hd); i++; continue;
+      }
+      if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(ln)) { el.append(document.createElement('hr')); i++; continue; }
+      if (/^\s*>/.test(ln)) {
+        const buf = [];
+        while (i < src.length && /^\s*>/.test(src[i])) buf.push(src[i++].replace(/^\s*>\s?/, ''));
+        const q = h('blockquote'); lines(q, buf); el.append(q); continue;
+      }
+      if (/^\s*\|.*\|?\s*$/.test(ln) && ln.includes('|') && /^\s*\|/.test(ln)) {
+        const rows = [];
+        while (i < src.length && /^\s*\|/.test(src[i])) rows.push(src[i++]);
+        const cells = (r) => r.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+        const data = rows.filter((r) => !/^\s*\|?[\s:|-]+\|?\s*$/.test(r) || !/-/.test(r));
+        const tb = h('table');
+        data.forEach((r, ri) => {
+          const tr = h('tr');
+          cells(r).forEach((c) => { const td = h(ri === 0 && rows.length > 1 ? 'th' : 'td'); inline(td, c); tr.append(td); });
+          tb.append(tr);
+        });
+        el.append(h('div', { class: 'md-tw' }, tb)); continue;
+      }
+      if ((m = /^(\s*)([-*+•]|\d+[.)])\s+/.exec(ln))) {
+        const ordered = /\d/.test(m[2]);
+        const list = h(ordered ? 'ol' : 'ul');
+        if (ordered && parseInt(m[2], 10) > 1) list.setAttribute('start', parseInt(m[2], 10));
+        while (i < src.length && (m = /^(\s*)([-*+•]|\d+[.)])\s+(.*)$/.exec(src[i])) && /\d/.test(m[2]) === ordered) {
+          const li = h('li'); inline(li, m[3]); i++;
+          while (i < src.length && /^\s{2,}\S/.test(src[i]) && !/^\s*([-*+•]|\d+[.)])\s+/.test(src[i])) { li.append(document.createElement('br')); inline(li, src[i++].trim()); }
+          list.append(li);
+        }
+        el.append(list); continue;
+      }
+      const buf = [];
+      while (i < src.length && src[i].trim() && !/^\s*(```|#{1,6}\s|>|\||([-*+•]|\d+[.)])\s)/.test(src[i])) buf.push(src[i++].trim());
+      if (!buf.length) { buf.push(src[i++].trim()); }
+      const p = h('p'); lines(p, buf); el.append(p);
+    }
+    return el;
+  };
+
   A.icon = (name) => { const s = h('span', { class: 'ico', 'aria-hidden': 'true' }); s.innerHTML = ICONS[name] || ''; return s; };
 
   /* ---------------------------------------------------------------- API */

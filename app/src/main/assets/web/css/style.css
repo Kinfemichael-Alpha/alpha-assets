@@ -500,3 +500,21 @@ input[type=search].inp { width: 100%; }
 .splash-mark { width: min(56vw, 230px); aspect-ratio: 1; margin: 0 auto 14px; color: var(--ink); opacity: 0; transform: scale(.85); animation: markin .9s .1s cubic-bezier(.2, .8, .2, 1) forwards; }
 .splash-mark svg { width: 100%; height: 100%; display: block; }
 @keyframes markin { to { opacity: 1; transform: none; } }
+
+.msg.md { white-space: normal; line-height: 1.5; }
+.msg.md > :first-child { margin-top: 0; }
+.msg.md > :last-child { margin-bottom: 0; }
+.msg.md p { margin: 0 0 .6em; }
+.msg.md .md-h { margin: .8em 0 .35em; font-size: 1.05em; font-weight: 800; line-height: 1.3; }
+.msg.md ul, .msg.md ol { margin: 0 0 .6em; padding-left: 1.3em; }
+.msg.md li { margin: .15em 0; }
+.msg.md strong { font-weight: 800; }
+.msg.md code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .92em; padding: 1px 5px; border-radius: 6px; background: var(--tint); }
+.msg.md pre { margin: 0 0 .6em; padding: 10px 12px; border-radius: 12px; background: var(--tint); overflow-x: auto; white-space: pre; }
+.msg.md pre code { padding: 0; background: none; font-size: .88em; }
+.msg.md blockquote { margin: 0 0 .6em; padding: 2px 0 2px 12px; border-left: 3px solid var(--primary); opacity: .9; }
+.msg.md hr { border: 0; border-top: 1px solid var(--line); margin: .8em 0; }
+.msg.md .md-tw { overflow-x: auto; margin: 0 0 .6em; }
+.msg.md table { border-collapse: collapse; font-size: .92em; }
+.msg.md th, .msg.md td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+.msg.md th { background: var(--tint); font-weight: 800; }

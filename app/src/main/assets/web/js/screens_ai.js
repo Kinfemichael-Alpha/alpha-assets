@@ -16,7 +16,9 @@
 
     const toBottom = () => { list.scrollTop = list.scrollHeight; };
     const bubble = (role, text, extra) => {
-      const b = h('div', { class: 'msg ' + role + (extra ? ' ' + extra : '') }, text);
+      const rich = role === 'ai' && !extra && text;
+      const b = h('div', { class: 'msg ' + role + (extra ? ' ' + extra : '') }, rich ? null : text);
+      if (rich) A.md(b, text);
       list.append(b); toBottom(); return b;
     };
     const typing = () => {
@@ -44,7 +46,7 @@
       let ai = null;
       const show = (text) => {
         if (!ai) { tb.remove(); ai = target || bubble('ai', ''); }
-        ai.textContent = text;
+        A.md(ai, text);
         toBottom();
       };
       try {

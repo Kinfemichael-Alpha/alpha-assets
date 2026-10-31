@@ -208,7 +208,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         picked.reverse()
         while (picked.isNotEmpty() && picked.first().role != "user") picked.removeAt(0)
         val roles = ArrayList<String>(); val contents = ArrayList<String>()
-        var sys = systemPrompt() + " Reply in English."
+        var sys = offlinePrompt()
         if (modelName.contains("qwen3", true)) sys += " /no_think"
         roles.add("system"); contents.add(sys)
         for (m in picked) { roles.add(if (m.role == "user") "user" else "assistant"); contents.add(m.content) }
@@ -226,13 +226,23 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         j.error = msg(key); j.detail = detail; j.status = "error"; persist()
     }
 
+    private fun offlinePrompt(): String {
+        val nick = settings.getString("nickname")
+        val long = settings.getString("resp_len") != "short"
+        return "You are ALPHA AI, a friendly study assistant for students. Always answer in English only, whatever the question looks like. " +
+            "Use simple, clear explanations and short examples. " +
+            (if (long) "Give complete, well-structured answers. " else "Keep answers short and to the point. ") +
+            "You may use Markdown: **bold**, lists and code blocks. Do not use emojis. If you are unsure, say so honestly." +
+            (if (nick.isNotEmpty()) " The student's name is $nick; use it only occasionally." else "")
+    }
+
     private fun systemPrompt(): String {
         val nick = settings.getString("nickname")
         val long = settings.getString("resp_len") != "short"
         return "You are ALPHA AI, a friendly study assistant for Ethiopian students (high school and university). " +
             "Reply in the same language the user writes in (Amharic or English). Use simple, clear explanations and short examples. " +
             (if (long) "Give complete, well-structured answers. " else "Keep answers short and to the point. ") +
-            "Do not use emojis. If you are unsure, say so honestly." +
+            "You may use Markdown: **bold**, lists and code blocks. Do not use emojis. If you are unsure, say so honestly." +
             (if (nick.isNotEmpty()) " The student's name is $nick; use it only occasionally." else "")
     }
 
