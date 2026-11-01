@@ -12,7 +12,19 @@
     const mem = h('div', { class: 'mem', title: t('chat_memory') }, memFill);
     const input = h('textarea', { class: 'inp', rows: '1', maxlength: '4000', placeholder: t('input_hint'), 'aria-label': t('input_hint') });
     const sendBtn = h('button', { class: 'btn', type: 'button' }, t('send_btn'));
-    const composer = h('div', { class: 'composer' }, input, sendBtn);
+    const attachBtn = h('button', { class: 'bar-btn attach', type: 'button', 'aria-label': t('img_add') }, A.icon('image'));
+    const attachRow = h('div', { class: 'attach-row' });
+    let mode = 'online', attached = null;
+    const drawChip = () => {
+      A.clear(attachRow);
+      attachRow.style.display = attached ? '' : 'none';
+      if (!attached) return;
+      const rm = h('button', { class: 'chip-x', type: 'button', 'aria-label': t('img_remove') }, '×');
+      rm.addEventListener('click', async () => { attached = null; drawChip(); try { await A.post('/api/image/clear'); } catch (e) { } });
+      attachRow.append(h('div', { class: 'thumb' }, h('img', { src: attached.thumb, alt: '' }), rm));
+    };
+    drawChip();
+    const composer = h('div', { class: 'composer' }, attachBtn, input, sendBtn);
 
     const toBottom = () => { list.scrollTop = list.scrollHeight; };
     const bubble = (role, text, extra) => {
@@ -103,6 +115,7 @@
             bubble('ai', (j.error || t('err_server')) + (j.detail ? '\n(' + j.detail + ')' : ''), 'err');
             if (j.restore) {
               input.value = j.restore; autoGrow();
+              A.get('/api/image/state').then((st) => { if (st.has) { attached = { thumb: st.thumb }; drawChip(); } }).catch(() => {});
               const users = list.querySelectorAll('.msg.user');
               const lastUser = users[users.length - 1];
               if (lastUser && lastUser.textContent === j.restore) lastUser.remove();
@@ -142,9 +155,14 @@
     async function send() {
       if (pending) { try { await A.post('/api/chat/stop'); } catch (e) {} return; }
       const text = input.value.trim();
-      if (!text) return;
+      if (!text && !attached) return;
+      const shown = text || t('img_default_q');
+      const thumb = attached && attached.thumb;
       input.value = ''; autoGrow(); dropHero();
-      decorate(bubble('user', text), 'user');
+      const ub = bubble('user', shown);
+      if (thumb) ub.prepend(h('img', { class: 'msg-img', src: thumb, alt: '' }));
+      decorate(ub, 'user');
+      attached = null; drawChip();
       const tb = typing();
       try {
         const r = await A.post('/api/chat/send', { text });
@@ -159,6 +177,39 @@
     input.addEventListener('input', autoGrow);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (!pending) send(); } });
     sendBtn.addEventListener('click', send);
+
+    async function runOcr() {
+      const ov = A.loading(t('ocr_reading'), t('img_reading_title'));
+      try {
+        const r = await A.post('/api/image/ocr', { amharic: A.S.lang === 'AM' });
+        const res = (await A.poll(r.job_id, (j) => { if (j.phase) ov.set(j.phase); })).result;
+        ov.close();
+        input.value = (t('img_ocr_prefix') + '\n\n' + res.text).slice(0, 4000); autoGrow(); input.focus();
+      } catch (e) { ov.fail(e.message || t('err_server')); }
+      try { await A.post('/api/image/clear'); } catch (e) { }
+    }
+    async function takeImage(kind) {
+      const r = await A.pickImage(kind);
+      if (r.cancelled) return;
+      if (!r.ok) return A.info(r.message || t('err_server'));
+      if (mode === 'online') { attached = { thumb: r.thumb }; drawChip(); input.focus(); }
+      else runOcr();
+    }
+    attachBtn.addEventListener('click', () => {
+      if (pending) return;
+      const item = (icon, label, kind) => {
+        const b = h('button', { class: 'menu-item', type: 'button' }, A.icon(icon), h('span', null, label));
+        b.addEventListener('click', () => { m.close(); takeImage(kind); });
+        return b;
+      };
+      const m = A.modal({
+        title: t('img_add'), dismiss: true,
+        body: h('div', { class: 'menu' },
+          h('p', { class: 'muted small' }, mode === 'online' ? t('img_hint_online') : t('img_hint_offline')),
+          item('camera', t('img_camera'), 'camera'), item('image', t('img_gallery'), 'gallery')),
+        actions: [{ label: t('close'), kind: 'ghost' }],
+      });
+    });
 
     const menuBtn = h('button', { class: 'bar-btn', type: 'button', 'aria-label': t('ai_menu') }, A.icon('dots'));
     menuBtn.addEventListener('click', () => {
@@ -186,12 +237,12 @@
     const el = A.page(
       A.bar({ title: t('ai_title'), right: [menuBtn] }),
       mem,
-      h('div', { class: 'chat-wrap' }, list, composer));
+      h('div', { class: 'chat-wrap' }, list, attachRow, composer));
 
     async function enter(force) {
       lock(true);
       let r;
-      try { r = await A.post('/api/ai/enter', { force: !!force }); } catch (e) { A.info(e.message).then(() => A.back()); return; }
+      try { r = await A.post('/api/ai/enter', { force: !!force }); mode = r.mode || 'online'; } catch (e) { A.info(e.message).then(() => A.back()); return; }
       if (r.warn) {
         if (await A.confirm(r.message)) return enter(true);
         A.back();

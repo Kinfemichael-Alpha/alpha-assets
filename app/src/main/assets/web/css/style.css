@@ -539,9 +539,23 @@ input[type=search].inp { width: 100%; }
 .menu-item .ico { width: 22px; height: 22px; color: var(--primary); }
 .chat-item { font: inherit; text-align: left; border: 0; background: transparent; color: inherit; padding: 0; cursor: pointer; min-width: 0; }
 .ci-t { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pcard { display: flex; flex-direction: column; gap: 12px; }
-.pc-top { display: flex; align-items: center; gap: 12px; }
-.pc-top > .ico { width: 30px; height: 30px; color: #F5B800; flex: none; }
-.pc-t { font-weight: 800; }
-.pc-n { font-size: 30px; font-weight: 900; color: var(--primary); }
-.pc-b { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.attach-row { flex: none; padding: 8px 12px 0; background: var(--surface); }
+.thumb { position: relative; display: inline-block; }
+.thumb img { display: block; height: 72px; max-width: 140px; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); }
+.chip-x { position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: 16px; line-height: 24px; cursor: pointer; }
+.msg-img { display: block; max-width: 100%; max-height: 180px; border-radius: 12px; margin-bottom: 8px; }
+.composer .attach { flex: none; align-self: flex-end; width: 46px; height: 46px; }
+
+.pcard { padding: 8px 10px 8px 14px; }
+.pc-row { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.pc-row > .ico { width: 22px; height: 22px; color: #F5B800; flex: none; }
+.pc-t { font-weight: 700; font-size: 15px; }
+.pc-n { font-size: 20px; font-weight: 900; color: var(--primary); }
+.pc-i { width: 40px; height: 40px; flex: none; color: var(--muted); background: transparent; box-shadow: none; }
+.pc-i.on { color: var(--primary); }
+.pc-more { padding: 6px 4px 8px; font-size: 14px; }
+.pc-more[hidden] { display: none; }
+.pc-h { margin: 4px 0; font-weight: 800; }
+.pc-more ul { margin: 0 0 10px; padding-left: 1.2em; }
+.pc-more li { margin: 3px 0; }

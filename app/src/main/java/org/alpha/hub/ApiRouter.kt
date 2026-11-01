@@ -45,7 +45,8 @@ class ApiRouter(private val ctx: Context) {
     }
     fun onBackground() { Thread { chat.stop(); engine.unload() }.start() }
     private val llm = LlmService(ctx, settings)
-    private val chat = ChatService(ctx, settings, llm, engine, models) { msg(it) }
+    val images = ImageService(ctx) { msg(it) }
+    private val chat = ChatService(ctx, settings, llm, engine, models, images) { msg(it) }
     private val study = StudyService(ctx, settings, llm, engine, models) { msg(it) }
 
     fun handle(method: String, fullPath: String, body: JSONObject): Pair<Int, JSONObject> {
@@ -100,6 +101,9 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/chat/open" -> chat.open(b.optString("name"))
         "POST /api/chat/delete" -> chat.deleteSaved(b.optString("name"))
         "POST /api/chat/regenerate" -> chat.regenerate()
+        "GET /api/image/state" -> images.state()
+        "POST /api/image/clear" -> { images.clear(); JSONObject().put("ok", true) }
+        "POST /api/image/ocr" -> { val am = b.optBoolean("amharic"); study.runJob { j -> images.ocr(am) { j.phase = it } } }
         // ቅንብሮች ማያ የሚጠይቀው ዝርዝር (ሞዴሎች ገና አልተሰሩም - ባዶ ዝርዝር) / settings screen list; models not ported yet
         "GET /api/job" -> study.job(b.optString("id"))
         "GET /api/quiz/list" -> study.quizList()

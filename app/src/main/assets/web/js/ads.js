@@ -31,14 +31,19 @@
     return el;
   };
   ads.card = function card() {
-    const val = h('div', { class: 'pc-n' });
-    const wb = h('button', { class: 'btn sm', type: 'button' }, t('pts_watch'));
+    const val = h('span', { class: 'pc-n' });
+    const wb = h('button', { class: 'btn sm', type: 'button' }, t('pts_watch_short'));
     wb.addEventListener('click', async () => { await ads.watch(); });
+    const ib = h('button', { class: 'bar-btn pc-i', type: 'button', 'aria-label': t('pts_more'), 'aria-expanded': 'false' }, A.icon('info'));
     const ub = h('button', { class: 'btn sm ghost', type: 'button' }, t('pts_use'));
     ub.addEventListener('click', async () => { await ads.refresh(); ads.gate(); });
+    const li = (k) => h('li', null, t(k));
+    const more = h('div', { class: 'pc-more' }, h('p', { class: 'pc-h' }, t('pts_how')),
+      h('ul', null, li('pts_i1'), li('pts_i2'), li('pts_i3'), li('pts_i4')), ub);
+    more.hidden = true;
+    ib.addEventListener('click', () => { more.hidden = !more.hidden; ib.setAttribute('aria-expanded', String(!more.hidden)); ib.classList.toggle('on', !more.hidden); });
     const el = h('div', { class: 'card pcard' },
-      h('div', { class: 'pc-top' }, A.icon('star'), h('div', { class: 'grow' }, h('div', { class: 'pc-t' }, t('pts_card_title')), h('div', { class: 'muted small' }, t('pts_card_sub'))), val),
-      h('div', { class: 'pc-b' }, wb, ub));
+      h('div', { class: 'pc-row' }, A.icon('star'), h('div', { class: 'pc-t' }, t('pts_card_title')), val, h('span', { class: 'grow' }), wb, ib), more);
     el.draw = () => { val.textContent = String(ads.status ? ads.status.points || 0 : 0); };
     el.draw();
     ads.pills.add(el);

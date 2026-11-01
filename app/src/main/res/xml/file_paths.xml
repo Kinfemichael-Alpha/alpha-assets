@@ -2,4 +2,5 @@
 <paths>
     <files-path name="books" path="books/" />
     <files-path name="exams" path="exams/" />
+    <cache-path name="cache" path="." />
 </paths>

@@ -86,7 +86,6 @@
       const any = c.phone.length || c.telegram.length || c.email.length;
       A.clear(body).append(h('div', { class: 'card' },
         h('h1', { class: 'hello' }, c.name[0] || 'Kinfemichael'),
-        h('p', { class: 'muted' }, t('dev_role')),
         any ? null : h('p', { class: 'muted' }, t('contact_none')),
         ...rows(c, 'phone', t('call_me'), 'btn_call'),
         ...rows(c, 'telegram', t('telegram'), 'btn_telegram'),

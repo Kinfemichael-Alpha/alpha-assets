@@ -129,10 +129,14 @@ class LlmService(ctx: Context, private val settings: SettingsStore) {
         val type = preset(id)?.optString("type") ?: "gemini"
         if (type == "gemini") return gemini.stream(key, system, contents, maxTokens, temperature, json, isCancelled, onDelta)
         val turns = ArrayList<Pair<String, String>>()
+        var img: String? = null
         for (i in 0 until contents.length()) {
             val c = contents.getJSONObject(i)
             val role = if (c.optString("role") == "model") "assistant" else "user"
-            val text = c.optJSONArray("parts")?.optJSONObject(0)?.optString("text") ?: ""
+            val ps = c.optJSONArray("parts")
+            val text = ps?.optJSONObject(0)?.optString("text") ?: ""
+            img = null
+            if (ps != null) for (k in 0 until ps.length()) ps.optJSONObject(k)?.optJSONObject("inlineData")?.let { img = it.optString("data").ifEmpty { null } }
             if (text.isEmpty()) continue
             if (turns.isNotEmpty() && turns.last().first == role) turns[turns.size - 1] = Pair(role, turns.last().second + "\n" + text) else turns.add(Pair(role, text))
         }
@@ -140,8 +144,8 @@ class LlmService(ctx: Context, private val settings: SettingsStore) {
         val anth = type == "anthropic"
         val model = resolveModel(id, anth)
         return try {
-            if (anth) wire.streamAnthropic(base, key, model, system, turns, maxTokens, temperature, isCancelled, onDelta)
-            else wire.streamOpenAi(base, key, model, system, turns, maxTokens, temperature, json, isCancelled, onDelta)
+            if (anth) wire.streamAnthropic(base, key, model, system, turns, maxTokens, temperature, isCancelled, onDelta, img)
+            else wire.streamOpenAi(base, key, model, system, turns, maxTokens, temperature, json, isCancelled, onDelta, img)
         } catch (e: GeminiError) { if (e.key == "online_model_gone") modelCache.remove(id); throw e }
     }
 }
@@ -198,13 +202,20 @@ class WireClient {
 
     fun streamOpenAi(
         base: String, key: String, model: String, system: String, turns: List<Pair<String, String>>, maxTokens: Int,
-        temperature: Double, json: Boolean, isCancelled: () -> Boolean, onDelta: (String) -> Unit,
+        temperature: Double, json: Boolean, isCancelled: () -> Boolean, onDelta: (String) -> Unit, img: String? = null,
     ): StreamResult {
         var tokenParam = "max_tokens"; var useTemp = true; var useJson = json
         for (attempt in 0 until 4) {
             val msgs = JSONArray()
             if (system.isNotEmpty()) msgs.put(JSONObject().put("role", "system").put("content", system))
-            for ((r, t) in turns) msgs.put(JSONObject().put("role", r).put("content", t))
+            for ((idx, rt) in turns.withIndex()) {
+                val (r, t) = rt
+                if (img != null && idx == turns.size - 1 && r == "user") {
+                    val parts = JSONArray().put(JSONObject().put("type", "text").put("text", t))
+                        .put(JSONObject().put("type", "image_url").put("image_url", JSONObject().put("url", "data:image/jpeg;base64,$img")))
+                    msgs.put(JSONObject().put("role", r).put("content", parts))
+                } else msgs.put(JSONObject().put("role", r).put("content", t))
+            }
             val body = JSONObject().put("model", model).put("messages", msgs).put("stream", true).put(tokenParam, maxTokens)
             if (useTemp) body.put("temperature", temperature)
             if (useJson) body.put("response_format", JSONObject().put("type", "json_object"))
@@ -249,10 +260,17 @@ class WireClient {
 
     fun streamAnthropic(
         base: String, key: String, model: String, system: String, turns: List<Pair<String, String>>, maxTokens: Int,
-        temperature: Double, isCancelled: () -> Boolean, onDelta: (String) -> Unit,
+        temperature: Double, isCancelled: () -> Boolean, onDelta: (String) -> Unit, img: String? = null,
     ): StreamResult {
         val msgs = JSONArray()
-        for ((r, t) in turns) msgs.put(JSONObject().put("role", r).put("content", t))
+        for ((idx, rt) in turns.withIndex()) {
+            val (r, t) = rt
+            if (img != null && idx == turns.size - 1 && r == "user") {
+                val parts = JSONArray().put(JSONObject().put("type", "image").put("source", JSONObject().put("type", "base64").put("media_type", "image/jpeg").put("data", img)))
+                    .put(JSONObject().put("type", "text").put("text", t))
+                msgs.put(JSONObject().put("role", r).put("content", parts))
+            } else msgs.put(JSONObject().put("role", r).put("content", t))
+        }
         val body = JSONObject().put("model", model).put("max_tokens", maxTokens).put("messages", msgs).put("stream", true)
             .put("temperature", temperature.coerceIn(0.0, 1.0))
         if (system.isNotEmpty()) body.put("system", system)

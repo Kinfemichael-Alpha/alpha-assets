@@ -14,8 +14,8 @@ import org.json.JSONObject
  * Chat session: history, live streamed reply, continue and stop.
  * መልሱ እየተመነጨ ያለው ጽሁፍ ወዲያው በ [Job.text] ውስጥ ይከማቻል፤ UI በፍጥነት ይጠይቃል (poll)።
  */
-class ChatService(private val ctx: Context, private val settings: SettingsStore, private val llm: LlmService, private val engine: OfflineEngine, private val models: ModelManager, private val msg: (String) -> String) {
-    class Msg(val role: String, var content: String, var error: Boolean = false)
+class ChatService(private val ctx: Context, private val settings: SettingsStore, private val llm: LlmService, private val engine: OfflineEngine, private val models: ModelManager, private val images: ImageService, private val msg: (String) -> String) {
+    class Msg(val role: String, var content: String, var error: Boolean = false, @Volatile var img: String? = null)
 
     /** አንድ የመልስ ሥራ / one reply job */
     class Job(val id: String) {
@@ -140,9 +140,12 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
 
     @Synchronized fun send(text: String): JSONObject {
         if (job?.status == "running") throw ApiError(409, "err_busy")
-        val clean = text.trim().take(4000)
+        var clean = text.trim().take(4000)
+        val img = if (settings.getBool("online_mode")) images.base64() else null
+        if (clean.isEmpty() && img != null) clean = "Please read this image and help me with it."
         if (clean.isEmpty()) throw ApiError(400, "err_bad_request")
-        history.add(Msg("user", clean)); history.add(Msg("assistant", ""))
+        images.clear()
+        history.add(Msg("user", clean, false, img)); history.add(Msg("assistant", ""))
         return startJob(continuation = false, userText = clean)
     }
 
@@ -266,7 +269,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
     private fun fail(j: Job, target: Msg, key: String, continuation: Boolean, userText: String, detail: String = "") {
         if (!continuation) {
             history.remove(target)
-            val u = history.lastOrNull(); if (u != null && u.role == "user" && u.content == userText) history.removeAt(history.size - 1)
+            val u = history.lastOrNull(); if (u != null && u.role == "user" && u.content == userText) { u.img?.let { images.restore(it) }; history.removeAt(history.size - 1) }
             j.restore = userText
         }
         j.error = msg(key); j.detail = detail; j.status = "error"; persist()
@@ -308,8 +311,13 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         // Gemini ታሪክ በ user መጀመር አለበት / history must begin with a user turn
         while (picked.isNotEmpty() && picked.first().role != "user") picked.removeAt(0)
         val a = JSONArray()
-        for (m in picked) a.put(JSONObject().put("role", if (m.role == "user") "user" else "model")
-            .put("parts", JSONArray().put(JSONObject().put("text", m.content))))
+        val lastUser = picked.lastOrNull { it.role == "user" }
+        for (m in picked) {
+            val parts = JSONArray().put(JSONObject().put("text", m.content))
+            val im = m.img
+            if (im != null && m === lastUser && !continuation) parts.put(JSONObject().put("inlineData", JSONObject().put("mimeType", "image/jpeg").put("data", im)))
+            a.put(JSONObject().put("role", if (m.role == "user") "user" else "model").put("parts", parts))
+        }
         if (continuation) a.put(JSONObject().put("role", "user").put("parts", JSONArray().put(JSONObject().put("text",
             "Continue exactly from where you stopped. Do not repeat anything and do not add an introduction."))))
         return a

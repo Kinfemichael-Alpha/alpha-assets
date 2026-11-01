@@ -33,6 +33,15 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread { web.evaluateJavascript("window.A && A._picked && A._picked(${r})", null) }
         }
     }
+    private fun imageDone(uri: android.net.Uri?) {
+        pool.execute {
+            val r = if (uri == null) JSONObject().put("ok", false).put("cancelled", true) else router.images.prepare(uri)
+            runOnUiThread { web.evaluateJavascript("window.A && A._imgPicked && A._imgPicked(${r})", null) }
+        }
+    }
+    private val galleryPicker = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri -> imageDone(uri) }
+    private var cameraUri: android.net.Uri? = null
+    private val cameraPicker = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.TakePicture()) { ok -> imageDone(if (ok) cameraUri else null) }
     private val origin = "https://appassets.androidplatform.net"
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -60,6 +69,16 @@ class MainActivity : AppCompatActivity() {
         web.addJavascriptInterface(object {
             @JavascriptInterface
             fun pickFile() { runOnUiThread { picker.launch(arrayOf("*/*")) } }
+
+            @JavascriptInterface
+            fun pickImage(kind: String) {
+                runOnUiThread {
+                    if (kind == "camera") {
+                        try { cameraUri = router.images.cameraUri(); cameraPicker.launch(cameraUri!!) }
+                        catch (e: Exception) { imageDone(null) }
+                    } else galleryPicker.launch("image/*")
+                }
+            }
 
             @JavascriptInterface
             fun call(id: Int, method: String, path: String, bodyJson: String) {
