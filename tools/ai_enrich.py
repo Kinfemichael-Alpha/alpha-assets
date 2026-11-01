@@ -29,6 +29,7 @@ TOPICS = {
     "Mathematics": ["Algebra", "Functions", "Trigonometry", "Calculus", "Geometry", "Statistics and Probability", "Sequences and Series", "Vectors and Matrices", "Coordinate Geometry"],
     "English": ["Reading Comprehension", "Grammar", "Vocabulary", "Cloze and Completion", "Writing and Communication", "Literature"],
 }
+TRANSCRIBE = ("Mathematics", "Chemistry", "Physics")
 FORMAT_SUBJECTS = ("Physics", "Chemistry", "Mathematics")
 CUE = re.compile(r"passage|read the following|based on|refer to|questions?\s+\d+\s*(?:-|–|to|and)\s*\d+|the (?:figure|table|diagram|graph|data|information|text|paragraph) (?:above|below)|following (?:figure|table|diagram|graph|data|information|text|paragraph)", re.I)
 
@@ -274,7 +275,7 @@ def words(s):
     return {w for w in re.findall(r"[a-z]{4,}", re.sub(r"\\\(.*?\\\)|\$.*?\$", " ", s.lower()))}
 
 
-def repair_layout(pool, exam, folder, log=print):
+def repair_layout(pool, exam, folder, log=print, everything=None):
     key = (exam.get("source") or {}).get("key")
     if not key:
         return
@@ -282,7 +283,9 @@ def repair_layout(pool, exam, folder, log=print):
     if not os.path.exists(pdf):
         log("missing", pdf)
         return
-    todo = [q for q in exam["questions"] if "math_layout" in q["flags"] and "vision_fixed" not in q["flags"]]
+    if everything is None:
+        everything = exam["subject"].split()[0] in TRANSCRIBE
+    todo = [q for q in exam["questions"] if ("math_layout" in q["flags"] or everything) and "vision_fixed" not in q["flags"]]
     if not todo:
         return
     starts, npages = page_starts(pdf, exam["count"])
@@ -294,51 +297,114 @@ def repair_layout(pool, exam, folder, log=print):
     for pg, qs in sorted(by_page.items()):
         pages = [pg] + ([pg + 1] if pg < npages else [])
         imgs = render_pages(pdf, pages)
-        wanted = [q["n"] for q in qs]
-        user = (
-            "These images are consecutive pages of an exam marking key. Transcribe the questions numbered %s exactly as printed.\n"
-            "For each question give: the question text, every option (A, B, C, D and E if present) without the check mark, the correct answer letter (the option marked with a check mark and the 'Answer:' line), and the explanation.\n"
-            "Write all mathematics, chemistry formulas and units in LaTeX inside \\( ... \\) (inline). Use fractions, integrals with limits, roots, exponents and subscripts correctly. Do not solve, shorten or improve anything.\n"
-            "Return {\"items\":[{\"n\":number,\"text\":\"...\",\"options\":{\"A\":\"...\"},\"answer\":\"A\",\"explanation\":\"...\"}]}." % ", ".join(map(str, wanted))
-        )
-        try:
-            d = parse_json(pool.ask("You transcribe exam pages accurately. Reply with one JSON object only.", user, images=imgs, max_tokens=8192))
-        except RuntimeError as e:
-            log("layout repair skipped:", e)
-            return
-        items = d.get("items") if isinstance(d, dict) else None
-        by = {int(x["n"]): x for x in (items or []) if isinstance(x, dict) and str(x.get("n", "")).isdigit()}
-        for q in qs:
-            x = by.get(q["n"])
+        pending = list(qs)
+        for attempt in range(2):
+            wanted = [q["n"] for q in pending]
+            user = (
+                "These images are consecutive pages of an exam marking key. Transcribe the questions numbered %s exactly as printed.\n"
+                "For each question give: the question text, every option (A, B, C, D and E if present) without the check mark, the correct answer letter (the option marked with a check mark and the 'Answer:' line), and the explanation.\n"
+                "Write all mathematics, chemistry formulas and units in LaTeX inside \\( ... \\) (inline). Use fractions, integrals with limits, roots, exponents and subscripts correctly. Do not solve, shorten or improve anything.\n"
+                "Return {\"items\":[{\"n\":number,\"text\":\"...\",\"options\":{\"A\":\"...\"},\"answer\":\"A\",\"explanation\":\"...\"}]}." % ", ".join(map(str, wanted))
+            )
             try:
-                opts = {k: str(v).strip() for k, v in x["options"].items() if str(v).strip()}
-                ans = str(x["answer"]).strip().upper()[:1]
-                txt = str(x["text"]).strip()
-                exp = str(x.get("explanation", "")).strip()
-                ok = sorted(opts) in (list("ABCD"), list("ABCDE")) and ans in opts and txt
-                ok = ok and (not q["answer"] or ans == q["answer"])
-                a, b = words(txt), words(q["text"])
-                ok = ok and (not b or len(a & b) / len(b) >= 0.5)
-            except Exception:
-                ok = False
-            q["flags"] = [f for f in q["flags"] if f not in ("math_layout", "paper_text_differs", "paper_options_differ", "answer_mismatch") and not f.startswith("option_count")]
-            if ok:
-                q["text"], q["options"], q["answer"], q["explanation"] = txt, opts, ans, exp
-                q["flags"].append("vision_fixed")
-            else:
+                d = parse_json(pool.ask("You transcribe exam pages accurately. Reply with one JSON object only.", user, images=imgs, max_tokens=8192))
+            except RuntimeError as e:
+                log("layout repair skipped:", e)
+                return
+            items = d.get("items") if isinstance(d, dict) else None
+            by = {int(x["n"]): x for x in (items or []) if isinstance(x, dict) and str(x.get("n", "")).isdigit()}
+            still = []
+            for q in pending:
+                x = by.get(q["n"])
+                try:
+                    opts = {k: str(v).strip() for k, v in x["options"].items() if str(v).strip()}
+                    ans = str(x["answer"]).strip().upper()[:1]
+                    txt = str(x["text"]).strip()
+                    exp = str(x.get("explanation", "")).strip()
+                    ok = sorted(opts) in (list("ABCD"), list("ABCDE")) and ans in opts and txt
+                    ok = ok and (not q["answer"] or ans == q["answer"])
+                    ok = ok and (not q["options"] or len(opts) == len(q["options"]))
+                    a, b = words(txt), words(q["text"])
+                    ok = ok and (not b or len(a & b) / len(b) >= 0.5)
+                except Exception:
+                    ok = False
+                if ok:
+                    q["flags"] = [f for f in q["flags"] if f not in ("math_layout", "paper_text_differs", "paper_options_differ", "answer_mismatch", "vision_failed") and not f.startswith("option_count")]
+                    q["text"], q["options"], q["answer"], q["explanation"] = txt, opts, ans, exp
+                    q["flags"].append("vision_fixed")
+                else:
+                    still.append(q)
+            pending = still
+            if not pending:
+                break
+        for q in pending:
+            if "vision_failed" not in q["flags"]:
                 q["flags"].append("vision_failed")
         log("layout", exam["id"], "page", pg, [q["n"] for q in qs])
 
 
+def add_extra(pool, exam, size=4, log=print):
+    leaders = {}
+    for q in exam["questions"]:
+        if q.get("leader") and q.get("group"):
+            leaders[q["group"]] = q["text"]
+    todo = [q for q in exam["questions"] if not q.get("extra") and q["answer"] and "extra_disputed" not in q["flags"]]
+    sysmsg = "You are an excellent teacher for Ethiopian grade 12 students preparing for the national exam. Reply with one JSON object only."
+    for i in range(0, len(todo), size):
+        pending = todo[i : i + size]
+        for attempt in range(2):
+            payload = []
+            for q in pending:
+                p = {"n": q["n"], "question": q["text"], "options": q["options"]}
+                if q.get("figure"):
+                    p["figure"] = q["figure"]
+                if q.get("group") and not q.get("leader") and q["group"] in leaders:
+                    p["passage"] = leaders[q["group"]]
+                payload.append(p)
+            user = (
+                "Subject: %s. For each question below, first solve it yourself and decide which option is correct, then write an extra explanation for a student who did not understand the question.\n"
+                "The extra explanation must be thorough and in Markdown: the core concept in plain words, the full step-by-step working, why the correct option is right, why each wrong option is wrong, and one common mistake to avoid.\n"
+                "Write all mathematics and chemistry in LaTeX inside \\( ... \\) or \\[ ... \\]. Use simple English.\n"
+                "Return {\"items\":[{\"n\":number,\"answer\":\"A\",\"extra\":\"...\"}]}.\n\n%s" % (exam["subject"], json.dumps(payload, ensure_ascii=False))
+            )
+            try:
+                d = parse_json(pool.ask(sysmsg, user, max_tokens=8192))
+            except RuntimeError as e:
+                log("extra skipped:", e)
+                return
+            items = d.get("items") if isinstance(d, dict) else None
+            by = {int(x["n"]): x for x in (items or []) if isinstance(x, dict) and str(x.get("n", "")).isdigit()}
+            still = []
+            for q in pending:
+                x = by.get(q["n"])
+                try:
+                    ok = str(x["answer"]).strip().upper()[:1] == q["answer"] and len(str(x["extra"]).strip()) > 80
+                except Exception:
+                    ok = False
+                if ok:
+                    q["extra"] = str(x["extra"]).strip()
+                else:
+                    still.append(q)
+            pending = still
+            if not pending:
+                break
+        for q in pending:
+            if "extra_disputed" not in q["flags"]:
+                q["flags"].append("extra_disputed")
+        log("extra", exam["id"], min(i + size, len(todo)), "/", len(todo))
+
+
 def refresh_issues(exam):
-    exam["issues"] = ["q%d:%s" % (q["n"], f) for q in exam["questions"] for f in q["flags"] if f not in ("ai_format", "vision_fixed")]
+    exam["issues"] = ["q%d:%s" % (q["n"], f) for q in exam["questions"] for f in q["flags"] if f not in ("ai_format", "vision_fixed", "extra_disputed")]
     return exam
 
 
-def enrich(pool, exam, log=print, folder=None):
+def enrich(pool, exam, log=print, folder=None, extra=True):
     if folder:
         repair_layout(pool, exam, folder, log=log)
     tag_topics(pool, exam, log=log)
     find_groups(pool, exam, log=log)
     fix_format(pool, exam, log=log)
+    if extra:
+        add_extra(pool, exam, log=log)
     return refresh_issues(exam)
