@@ -68,7 +68,30 @@
     star: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.9-4.7 4.5 1.2 6.4L12 17.4 6.3 20.5l1.2-6.4L2.8 9.6l6.4-.9z"/></svg>',
     phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2z"/></svg>',
   };
-  const INLINE = /(`[^`\n]+`)|(\*\*[^*\n]+?\*\*)|(__[^_\n]+?__)|(~~[^~\n]+?~~)|(\*[^*\s][^*\n]*?\*)|((?<![\w])_[^_\s][^_\n]*?_(?![\w]))/;
+  const TOK = /([DI])(\d+)/;
+  const INLINE = new RegExp([
+    '(`[^`\\n]+`)',
+    '(\\uE000[DI]\\d+\\uE001)',
+    '(\\*\\*\\*[^*\\n]+?\\*\\*\\*)',
+    '(\\*\\*[^*\\n]+?\\*\\*)',
+    '(__[^_\\n]+?__)',
+    '(~~[^~\\n]+?~~)',
+    '(\\*[^*\\s][^*\\n]*?\\*)',
+    '((?<![\\w])_[^_\\s][^_\\n]*?_(?![\\w]))',
+    '(!?\\[[^\\]\\n]*\\]\\([^)\\s]+(?:\\s+"[^"]*")?\\))',
+    '(https?:\\/\\/[^\\s<>()]+)',
+    '(<br\\s*\\/?>)',
+    '(<(?:sup|sub)>[^<\\n]{1,40}<\\/(?:sup|sub)>)',
+  ].join('|'));
+  let MATHS = [];
+  function renderMath(tex, display) {
+    const box = h(display ? 'div' : 'span', { class: display ? 'math-d' : 'math-i' });
+    try {
+      if (!window.katex) throw new Error('no katex');
+      window.katex.render(tex, box, { displayMode: display, throwOnError: false, strict: 'ignore', trust: false, maxSize: 20, maxExpand: 500 });
+    } catch (e) { box.textContent = tex; box.classList.add('math-raw'); }
+    return box;
+  }
   function inline(parent, s) {
     for (;;) {
       const m = INLINE.exec(s);
@@ -76,34 +99,108 @@
       if (m.index) parent.append(document.createTextNode(s.slice(0, m.index)));
       const tok = m[0];
       let node;
-      if (m[1]) node = h('code', null, tok.slice(1, -1));
-      else if (m[2] || m[3]) { node = h('strong'); inline(node, tok.slice(2, -2)); }
-      else if (m[4]) { node = h('del'); inline(node, tok.slice(2, -2)); }
-      else { node = h('em'); inline(node, tok.slice(1, -1)); }
+      if (tok[0] === '`') node = h('code', null, tok.slice(1, -1));
+      else if (tok[0] === '') { const q = TOK.exec(tok); const mm = MATHS[Number(q[2])]; node = mm ? renderMath(mm.tex, q[1] === 'D') : document.createTextNode(''); }
+      else if (tok.startsWith('***')) { node = h('strong'); const e = h('em'); inline(e, tok.slice(3, -3)); node.append(e); }
+      else if (tok.startsWith('**') || tok.startsWith('__')) { node = h('strong'); inline(node, tok.slice(2, -2)); }
+      else if (tok.startsWith('~~')) { node = h('del'); inline(node, tok.slice(2, -2)); }
+      else if (tok[0] === '*' || tok[0] === '_') { node = h('em'); inline(node, tok.slice(1, -1)); }
+      else if (tok.startsWith('![')) { node = h('span', { class: 'lnk' }, tok.slice(2, tok.indexOf(']'))); }
+      else if (tok[0] === '[') {
+        const label = tok.slice(1, tok.indexOf(']('));
+        node = h('span', { class: 'lnk' }); inline(node, label);
+      }
+      else if (tok.startsWith('http')) node = h('span', { class: 'lnk' }, tok);
+      else if (tok.startsWith('<br')) node = document.createElement('br');
+      else { const tag = tok.slice(1, 4); node = h(tag); node.textContent = tok.slice(5, tok.length - 6); }
       parent.append(node);
       s = s.slice(m.index + tok.length);
     }
     if (s) parent.append(document.createTextNode(s));
   }
+  const isBlockMath = (ln) => /^\s*D\d+\s*$/.test(ln);
   function lines(parent, arr) {
-    arr.forEach((ln, i) => { if (i) parent.append(document.createElement('br')); inline(parent, ln); });
+    arr.forEach((ln, i) => {
+      if (i && !isBlockMath(ln) && !isBlockMath(arr[i - 1])) parent.append(document.createElement('br'));
+      inline(parent, ln);
+    });
+  }
+  function extractMath(text) {
+    MATHS = [];
+    const keep = (tex, display) => { MATHS.push({ tex: tex.trim() }); return '' + (display ? 'D' : 'I') + (MATHS.length - 1) + ''; };
+    const re = /(`[^`\n]*`)|\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|(?<![\\$\w])\$(?![\s$])([^$\n]+?)(?<![\s\\])\$(?![\d\w$])/g;
+    const parts = text.split(/(^|\n)([ \t]*```[\s\S]*?(?:\n[ \t]*```|$))/);
+    let out = '';
+    for (let i = 0; i < parts.length; i++) {
+      if (i % 3 === 2) { out += parts[i]; continue; }
+      if (i % 3 === 1) { out += parts[i]; continue; }
+      out += parts[i].replace(re, (all, code, d1, d2, i1, i2) => {
+        if (code) return code;
+        if (d1 !== undefined) return keep(d1, true);
+        if (d2 !== undefined) return keep(d2, true);
+        if (i1 !== undefined) return keep(i1, false);
+        return keep(i2, false);
+      });
+    }
+    return out;
+  }
+  const LISTM = /^(\s*)([-*+•]|\d+[.)])\s+(.*)$/;
+  function buildList(items) {
+    const stack = [];
+    const make = (it) => {
+      const l = h(it.ordered ? 'ol' : 'ul');
+      if (it.ordered && it.num > 1) l.setAttribute('start', it.num);
+      return l;
+    };
+    let rootEl = null;
+    items.forEach((it) => {
+      while (stack.length && it.indent < stack[stack.length - 1].indent) stack.pop();
+      let cur = stack[stack.length - 1];
+      if (!cur || it.indent > cur.indent) {
+        const l = make(it);
+        if (!cur) rootEl = rootEl || l;
+        else cur.lastLi.append(l);
+        cur = { indent: it.indent, list: l, lastLi: null, ordered: it.ordered };
+        stack.push(cur);
+      }
+      const li = h('li');
+      const task = /^\[([ xX])\]\s+/.exec(it.text);
+      let txt = it.text;
+      if (task) { li.classList.add('task'); li.append(h('span', { class: 'cb' + (task[1] === ' ' ? '' : ' on') }, task[1] === ' ' ? '' : '✓')); txt = txt.slice(task[0].length); }
+      const body = h('span', { class: 'li-b' });
+      lines(body, [txt].concat(it.more));
+      li.append(body);
+      cur.list.append(li);
+      cur.lastLi = li;
+    });
+    return rootEl;
+  }
+  function codeBlock(lang, code) {
+    const copy = h('button', { class: 'code-copy', type: 'button', 'aria-label': t('act_copy') }, A.icon('copy'));
+    copy.addEventListener('click', () => A.copy(code));
+    return h('div', { class: 'md-code' },
+      h('div', { class: 'code-bar' }, h('span', null, lang || ''), copy),
+      h('pre', null, h('code', null, code)));
   }
   A.md = function md(el, text) {
     el.textContent = '';
     el.classList.add('md');
-    const src = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+    return blocks(el, extractMath(String(text || '').replace(/\r\n?/g, '\n')).split('\n'));
+  };
+  function blocks(el, src) {
     let i = 0;
     while (i < src.length) {
       const ln = src[i];
-      if (/^\s*```/.test(ln)) {
+      let m;
+      if ((m = /^\s*```\s*([\w+#.-]*)/.exec(ln))) {
         const buf = []; i++;
         while (i < src.length && !/^\s*```/.test(src[i])) buf.push(src[i++]);
         i++;
-        el.append(h('pre', null, h('code', null, buf.join('\n'))));
+        el.append(codeBlock(m[1], buf.join('\n')));
         continue;
       }
       if (!ln.trim()) { i++; continue; }
-      let m;
+      if (isBlockMath(ln)) { inline(el, ln.trim()); i++; continue; }
       if ((m = /^\s{0,3}(#{1,6})\s+(.*)$/.exec(ln))) {
         const hd = h('h' + Math.min(6, m[1].length + 2), { class: 'md-h' });
         inline(hd, m[2].replace(/\s*#+\s*$/, ''));
@@ -113,13 +210,13 @@
       if (/^\s*>/.test(ln)) {
         const buf = [];
         while (i < src.length && /^\s*>/.test(src[i])) buf.push(src[i++].replace(/^\s*>\s?/, ''));
-        const q = h('blockquote'); lines(q, buf); el.append(q); continue;
+        const q = h('blockquote'); blocks(q, buf); el.append(q); continue;
       }
-      if (/^\s*\|.*\|?\s*$/.test(ln) && ln.includes('|') && /^\s*\|/.test(ln)) {
+      if (/^\s*\|/.test(ln)) {
         const rows = [];
         while (i < src.length && /^\s*\|/.test(src[i])) rows.push(src[i++]);
         const cells = (r) => r.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
-        const data = rows.filter((r) => !/^\s*\|?[\s:|-]+\|?\s*$/.test(r) || !/-/.test(r));
+        const data = rows.filter((r) => !(/^\s*\|?[\s:|-]+\|?\s*$/.test(r) && /-/.test(r)));
         const tb = h('table');
         data.forEach((r, ri) => {
           const tr = h('tr');
@@ -128,24 +225,29 @@
         });
         el.append(h('div', { class: 'md-tw' }, tb)); continue;
       }
-      if ((m = /^(\s*)([-*+•]|\d+[.)])\s+/.exec(ln))) {
-        const ordered = /\d/.test(m[2]);
-        const list = h(ordered ? 'ol' : 'ul');
-        if (ordered && parseInt(m[2], 10) > 1) list.setAttribute('start', parseInt(m[2], 10));
-        while (i < src.length && (m = /^(\s*)([-*+•]|\d+[.)])\s+(.*)$/.exec(src[i])) && /\d/.test(m[2]) === ordered) {
-          const li = h('li'); inline(li, m[3]); i++;
-          while (i < src.length && /^\s{2,}\S/.test(src[i]) && !/^\s*([-*+•]|\d+[.)])\s+/.test(src[i])) { li.append(document.createElement('br')); inline(li, src[i++].trim()); }
-          list.append(li);
+      if (LISTM.test(ln)) {
+        const items = [];
+        while (i < src.length) {
+          const l = src[i];
+          if (!l.trim()) {
+            let k = i + 1; while (k < src.length && !src[k].trim()) k++;
+            if (k < src.length && (LISTM.test(src[k]) || /^\s{2,}\S/.test(src[k]))) { i = k; continue; }
+            break;
+          }
+          const mm = LISTM.exec(l);
+          if (mm) { items.push({ indent: mm[1].replace(/\t/g, '    ').length, ordered: /\d/.test(mm[2]), num: parseInt(mm[2], 10) || 1, text: mm[3], more: [] }); i++; continue; }
+          if (/^\s{2,}\S/.test(l) && items.length) { items[items.length - 1].more.push(l.trim()); i++; continue; }
+          break;
         }
-        el.append(list); continue;
+        el.append(buildList(items)); continue;
       }
       const buf = [];
-      while (i < src.length && src[i].trim() && !/^\s*(```|#{1,6}\s|>|\||([-*+•]|\d+[.)])\s)/.test(src[i])) buf.push(src[i++].trim());
+      while (i < src.length && src[i].trim() && !/^\s*(```|#{1,6}\s|>|\||([-*+•]|\d+[.)])\s)/.test(src[i]) && !isBlockMath(src[i])) buf.push(src[i++].trim());
       if (!buf.length) { buf.push(src[i++].trim()); }
       const p = h('p'); lines(p, buf); el.append(p);
     }
     return el;
-  };
+  }
 
   A.copy = async function copy(text) {
     try { await navigator.clipboard.writeText(text); }

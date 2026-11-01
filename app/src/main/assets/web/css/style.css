@@ -559,3 +559,20 @@ input[type=search].inp { width: 100%; }
 .pc-h { margin: 4px 0; font-weight: 800; }
 .pc-more ul { margin: 0 0 10px; padding-left: 1.2em; }
 .pc-more li { margin: 3px 0; }
+
+.msg.md .math-d { margin: .5em 0; overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+.msg.md .math-d .katex-display { margin: 0; }
+.msg.md .math-i .katex { font-size: 1.02em; }
+.msg.md .math-raw { font-family: ui-monospace, Menlo, monospace; font-size: .9em; opacity: .85; }
+.msg.md .katex { white-space: nowrap; }
+.msg.md .lnk { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.msg.md li.task { list-style: none; margin-left: -1.2em; }
+.msg.md .cb { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-right: 8px; border: 1.5px solid var(--muted); border-radius: 4px; font-size: 12px; vertical-align: -2px; }
+.msg.md .cb.on { background: var(--primary); border-color: var(--primary); color: var(--white); }
+.msg.md ul ul, .msg.md ol ol, .msg.md ul ol, .msg.md ol ul { margin: .2em 0 0; }
+.msg.md .md-code { margin: 0 0 .6em; border-radius: 12px; background: var(--tint); overflow: hidden; }
+.msg.md .code-bar { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 2px 12px; font-size: 12px; font-weight: 700; opacity: .75; text-transform: lowercase; }
+.msg.md .code-copy { width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.msg.md .code-copy .ico { width: 16px; height: 16px; }
+.msg.md .md-code pre { margin: 0; padding: 4px 12px 12px; border-radius: 0; background: none; }
+.msg.md sup, .msg.md sub { font-size: .75em; }

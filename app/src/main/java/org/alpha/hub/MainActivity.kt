@@ -111,6 +111,7 @@ class MainActivity : AppCompatActivity() {
                 "css" -> "text/css"
                 "html" -> "text/html"
                 "json" -> "application/json"
+                "woff2" -> "font/woff2"
                 else -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
             }
             WebResourceResponse(mime, "utf-8", stream)
