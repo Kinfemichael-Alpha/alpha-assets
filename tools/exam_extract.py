@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 NOISE = re.compile(r"Temari\.et|MARKING\s*KEY|M\s*AR\s*K\s*I\s*N\s*G|Time allowed|Generated on|^\s*Grade\s+\d+\s*[·.]|Name\s+Grade\s+ID No|entrance exam, round|—\s*END OF|E\s*N\s*D\s*O\s*F\s*E\s*X\s*A\s*M", re.I)
+FRAG = re.compile(r"^\s{6,}(?:[A-Za-z]|[^A-Za-z\s]{1,8}|[A-Za-z][^A-Za-z\s]{1,4})(?:\s{1,4}(?:[A-Za-z]|[^A-Za-z\s]{1,8}|[A-Za-z][^A-Za-z\s]{1,4}))*\s*$")
 QSTART = re.compile(r"^\s{0,3}(\d{1,3})\.\s+(\S.*)$")
 OPT = re.compile(r"^\s+(✓\s*)?([A-E])\.\s*(✓\s*)?(.*)$")
 MARKS = re.compile(r"\s*\((\d+)\)\s*$")
@@ -62,7 +63,7 @@ def parse(text):
         m = QSTART.match(line)
         if m and (cur is None or int(m.group(1)) == cur["n"] + 1) and mode != "opt_open":
             body = m.group(2)
-            cur = {"n": int(m.group(1)), "text": "", "options": {}, "answer": None, "explanation": "", "marks": 1, "figure": None, "_last": None}
+            cur = {"n": int(m.group(1)), "text": "", "options": {}, "answer": None, "explanation": "", "marks": 1, "figure": None, "_last": None, "garble": 0}
             questions.append(cur)
             mm = MARKS.search(body)
             if mm:
@@ -73,6 +74,8 @@ def parse(text):
             continue
         if cur is None:
             continue
+        if "\u200b" in line or FRAG.match(line) or re.search(r"\\(?:in|frac|sqrt|int|sum|le|ge|mathbb|text|cdot|times|pi|theta|alpha)\b|\^\{", line):
+            cur["garble"] += 1
         a = ANS.match(line)
         if a:
             cur["answer"] = a.group(1)
@@ -129,6 +132,7 @@ def parse(text):
         q["options"] = opts
         q["marked"] = marked
         q.pop("_last", None)
+        q["garbled"] = q.pop("garble") >= 2
         out.append(q)
     return out
 
@@ -156,6 +160,8 @@ def build(base, paper_path, key_path):
     questions = []
     for q in src:
         flags = []
+        p = by_paper.get(q["n"])
+        p0 = p
         ans = q["answer"]
         if key:
             if len(q["marked"]) != 1:
@@ -166,12 +172,14 @@ def build(base, paper_path, key_path):
                 ans = q["marked"][0]
         else:
             flags.append("no_key")
-        if len(q["options"]) != 4:
+        letters = "".join(sorted(q["options"]))
+        if letters not in ("ABCD", "ABCDE"):
             flags.append("option_count_%d" % len(q["options"]))
-        p = by_paper.get(q["n"])
-        if key and p and re.sub(r"\s+", "", p["text"]) != re.sub(r"\s+", "", q["text"]):
+        if q["garbled"] or (p0 and p0["garbled"]):
+            flags.append("math_layout")
+        if "math_layout" not in flags and key and p and re.sub(r"\s+", "", p["text"]) != re.sub(r"\s+", "", q["text"]):
             flags.append("paper_text_differs")
-        if key and p and {k: re.sub(r"\s+", "", v) for k, v in p["options"].items()} != {k: re.sub(r"\s+", "", v) for k, v in q["options"].items()}:
+        if "math_layout" not in flags and key and p and {k: re.sub(r"\s+", "", v) for k, v in p["options"].items()} != {k: re.sub(r"\s+", "", v) for k, v in q["options"].items()}:
             flags.append("paper_options_differ")
         if not q["text"]:
             flags.append("empty_text")
@@ -197,6 +205,7 @@ def build(base, paper_path, key_path):
             "flags": flags,
         }
         questions.append(item)
+    groups = link_passages(questions)
     nums = [q["n"] for q in questions]
     issues = []
     if nums != list(range(1, len(nums) + 1)):
@@ -215,11 +224,47 @@ def build(base, paper_path, key_path):
         "count": len(questions),
         "total_marks": sum(q["marks"] for q in questions),
         "time_minutes": int(tm.group(1)) if tm else None,
+        "source": {"key": os.path.basename(key_path) if key_path else None, "paper": os.path.basename(paper_path) if paper_path else None},
+        "groups": groups,
         "issues": issues,
         "enriched": False,
         "questions": questions,
     }
     return exam, issues
+
+
+PASSAGE_REF = re.compile(r"^\s*(?:\d+\.\s+)?(?:same passage|.{0,400}?\(full passage as\s*above\))\s*", re.I | re.S)
+
+
+def split_leader(text):
+    m = re.search(r"^(.*[.!?\u201d\"])\s+([A-Z][^.!?]{3,220}(?:[:?]|_{2,}\.?|\.\.\.))\s*$", text, re.S)
+    if m and len(m.group(1)) > 200:
+        return m.group(1).strip(), m.group(2).strip()
+    return text, ""
+
+
+def link_passages(questions):
+    groups = []
+    leader = None
+    for i, q in enumerate(questions):
+        m = PASSAGE_REF.match(q["text"])
+        if not m:
+            leader = None
+            continue
+        if leader is None and i > 0:
+            leader = questions[i - 1]
+            passage, stem = split_leader(leader["text"])
+            leader["text"] = stem
+            leader["leader"] = True
+            leader["group"] = "g%d" % leader["n"]
+            if not stem:
+                leader["flags"].append("passage_split_needed")
+            groups.append({"id": leader["group"], "leader": leader["n"], "passage": passage, "members": [leader["n"]]})
+        q["text"] = q["text"][m.end():].strip()
+        q["group"] = leader["group"] if leader else None
+        if leader:
+            groups[-1]["members"].append(q["n"])
+    return groups
 
 
 def pair_files(folder):

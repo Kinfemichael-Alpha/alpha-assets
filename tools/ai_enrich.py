@@ -1,6 +1,10 @@
+import base64
+import glob
 import json
 import os
 import re
+import subprocess
+import tempfile
 import time
 
 import requests
@@ -15,6 +19,7 @@ BASES = {
     "huggingface": "https://router.huggingface.co/v1",
 }
 SKIP = ("embed", "whisper", "tts", "audio", "image", "moderation", "dall", "transcribe", "realtime", "rerank", "guard", "vision-preview", "imagen", "veo", "gemma-3n", "aqa")
+VISION = ("gemini", "gpt-4o", "gpt-4.1", "gpt-5", "o4", "vision", "-vl", "vl-", "pixtral", "llama-4", "scout", "maverick", "gemma-3", "claude", "mistral-small-3", "mistral-medium", "llava")
 PREFER = ("flash", "70b", "mini", "small", "large", "instruct", "llama", "gpt", "mistral", "qwen", "deepseek")
 
 TOPICS = {
@@ -60,7 +65,7 @@ class Pool:
         ids.sort(key=lambda x: (-sum(w in x.lower() for w in PREFER), x))
         return ids
 
-    def ask(self, system, user, json_mode=True, max_tokens=4096):
+    def ask(self, system, user, json_mode=True, max_tokens=4096, images=None):
         rounds = 0
         while True:
             alive = [k for k in self.keys if not k["dead"]]
@@ -73,18 +78,23 @@ class Pool:
                     except Exception as e:
                         self.log("model list failed:", k["provider"], str(e)[:80])
                         k["models"] = []
-                for model in [m for m in k["models"] if m not in k["bad"]]:
-                    out = self.call(k, model, system, user, json_mode, max_tokens)
+                for model in [m for m in k["models"] if m not in k["bad"] and (not images or any(v in m.lower() for v in VISION))]:
+                    out = self.call(k, model, system, user, json_mode, max_tokens, images)
                     if out is not None:
                         return out
                     if k["dead"]:
                         break
+            if images and not any(any(v in m.lower() for v in VISION) for k in alive for m in (k["models"] or [])):
+                raise RuntimeError("no vision-capable model among your keys")
             rounds += 1
             self.log("all keys and models are busy; waiting %ds (round %d)" % (self.pause, rounds))
             time.sleep(self.pause)
 
-    def call(self, k, model, system, user, json_mode, max_tokens):
-        body = {"model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "temperature": 0.1, "max_tokens": max_tokens}
+    def call(self, k, model, system, user, json_mode, max_tokens, images=None):
+        content = user
+        if images:
+            content = [{"type": "text", "text": user}] + [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + b}} for b in images]
+        body = {"model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": content}], "temperature": 0.1, "max_tokens": max_tokens}
         if json_mode:
             body["response_format"] = {"type": "json_object"}
         for attempt in range(2):
@@ -237,8 +247,98 @@ def fix_format(pool, exam, size=8, log=print):
         log("format", exam["id"], min(i + size, len(todo)), "/", len(todo))
 
 
-def enrich(pool, exam, log=print):
+def page_starts(pdf, count):
+    n = int(re.search(r"Pages:\s+(\d+)", subprocess.run(["pdfinfo", pdf], capture_output=True, text=True).stdout).group(1))
+    starts = {}
+    for pg in range(1, n + 1):
+        t = subprocess.run(["pdftotext", "-layout", "-f", str(pg), "-l", str(pg), pdf, "-"], capture_output=True, text=True).stdout
+        for m in re.finditer(r"^\s{0,3}(\d{1,3})\.\s", t, re.M):
+            q = int(m.group(1))
+            if 1 <= q <= count and q not in starts:
+                starts[q] = pg
+    return starts, n
+
+
+def render_pages(pdf, pages, dpi=110):
+    out = []
+    with tempfile.TemporaryDirectory() as d:
+        for pg in pages:
+            subprocess.run(["pdftoppm", "-r", str(dpi), "-f", str(pg), "-l", str(pg), "-jpeg", "-jpegopt", "quality=82", pdf, os.path.join(d, "p")], check=True)
+            f = sorted(glob.glob(os.path.join(d, "p-*.jpg")))[-1]
+            out.append(base64.b64encode(open(f, "rb").read()).decode())
+            os.remove(f)
+    return out
+
+
+def words(s):
+    return {w for w in re.findall(r"[a-z]{4,}", re.sub(r"\\\(.*?\\\)|\$.*?\$", " ", s.lower()))}
+
+
+def repair_layout(pool, exam, folder, log=print):
+    key = (exam.get("source") or {}).get("key")
+    if not key:
+        return
+    pdf = os.path.join(folder, key)
+    if not os.path.exists(pdf):
+        log("missing", pdf)
+        return
+    todo = [q for q in exam["questions"] if "math_layout" in q["flags"] and "vision_fixed" not in q["flags"]]
+    if not todo:
+        return
+    starts, npages = page_starts(pdf, exam["count"])
+    by_page = {}
+    for q in todo:
+        pg = starts.get(q["n"])
+        if pg:
+            by_page.setdefault(pg, []).append(q)
+    for pg, qs in sorted(by_page.items()):
+        pages = [pg] + ([pg + 1] if pg < npages else [])
+        imgs = render_pages(pdf, pages)
+        wanted = [q["n"] for q in qs]
+        user = (
+            "These images are consecutive pages of an exam marking key. Transcribe the questions numbered %s exactly as printed.\n"
+            "For each question give: the question text, every option (A, B, C, D and E if present) without the check mark, the correct answer letter (the option marked with a check mark and the 'Answer:' line), and the explanation.\n"
+            "Write all mathematics, chemistry formulas and units in LaTeX inside \\( ... \\) (inline). Use fractions, integrals with limits, roots, exponents and subscripts correctly. Do not solve, shorten or improve anything.\n"
+            "Return {\"items\":[{\"n\":number,\"text\":\"...\",\"options\":{\"A\":\"...\"},\"answer\":\"A\",\"explanation\":\"...\"}]}." % ", ".join(map(str, wanted))
+        )
+        try:
+            d = parse_json(pool.ask("You transcribe exam pages accurately. Reply with one JSON object only.", user, images=imgs, max_tokens=8192))
+        except RuntimeError as e:
+            log("layout repair skipped:", e)
+            return
+        items = d.get("items") if isinstance(d, dict) else None
+        by = {int(x["n"]): x for x in (items or []) if isinstance(x, dict) and str(x.get("n", "")).isdigit()}
+        for q in qs:
+            x = by.get(q["n"])
+            try:
+                opts = {k: str(v).strip() for k, v in x["options"].items() if str(v).strip()}
+                ans = str(x["answer"]).strip().upper()[:1]
+                txt = str(x["text"]).strip()
+                exp = str(x.get("explanation", "")).strip()
+                ok = sorted(opts) in (list("ABCD"), list("ABCDE")) and ans in opts and txt
+                ok = ok and (not q["answer"] or ans == q["answer"])
+                a, b = words(txt), words(q["text"])
+                ok = ok and (not b or len(a & b) / len(b) >= 0.5)
+            except Exception:
+                ok = False
+            q["flags"] = [f for f in q["flags"] if f not in ("math_layout", "paper_text_differs", "paper_options_differ", "answer_mismatch") and not f.startswith("option_count")]
+            if ok:
+                q["text"], q["options"], q["answer"], q["explanation"] = txt, opts, ans, exp
+                q["flags"].append("vision_fixed")
+            else:
+                q["flags"].append("vision_failed")
+        log("layout", exam["id"], "page", pg, [q["n"] for q in qs])
+
+
+def refresh_issues(exam):
+    exam["issues"] = ["q%d:%s" % (q["n"], f) for q in exam["questions"] for f in q["flags"] if f not in ("ai_format", "vision_fixed")]
+    return exam
+
+
+def enrich(pool, exam, log=print, folder=None):
+    if folder:
+        repair_layout(pool, exam, folder, log=log)
     tag_topics(pool, exam, log=log)
     find_groups(pool, exam, log=log)
     fix_format(pool, exam, log=log)
-    return exam
+    return refresh_issues(exam)
