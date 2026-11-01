@@ -72,7 +72,7 @@ Java_org_alpha_hub_LlamaBridge_nativeGenerate(JNIEnv * env, jobject, jlong h, jo
     Engine * e = (Engine *) h;
     if (!e) return -1;
     jclass cbc = env->GetObjectClass(cb);
-    jmethodID onTok = env->GetMethodID(cbc, "onToken", "(Ljava/lang/String;)Z");
+    jmethodID onTok = env->GetMethodID(cbc, "onBytes", "([B)Z");
     if (!onTok) return -1;
 
     int n = env->GetArrayLength(roles);
@@ -80,11 +80,13 @@ Java_org_alpha_hub_LlamaBridge_nativeGenerate(JNIEnv * env, jobject, jlong h, jo
     std::vector<llama_chat_message> msgs(n);
     for (int i = 0; i < n; i++) {
         jstring jr = (jstring) env->GetObjectArrayElement(roles, i);
-        jstring jc = (jstring) env->GetObjectArrayElement(contents, i);
+        jbyteArray jc = (jbyteArray) env->GetObjectArrayElement(contents, i);
         const char * r = env->GetStringUTFChars(jr, nullptr);
-        const char * c = env->GetStringUTFChars(jc, nullptr);
-        rs[i] = r; cs[i] = c;
-        env->ReleaseStringUTFChars(jr, r); env->ReleaseStringUTFChars(jc, c);
+        rs[i] = r;
+        env->ReleaseStringUTFChars(jr, r);
+        jsize cl = env->GetArrayLength(jc);
+        cs[i].resize((size_t) cl);
+        if (cl > 0) env->GetByteArrayRegion(jc, 0, cl, (jbyte *) &cs[i][0]);
         env->DeleteLocalRef(jr); env->DeleteLocalRef(jc);
     }
     for (int i = 0; i < n; i++) { msgs[i].role = rs[i].c_str(); msgs[i].content = cs[i].c_str(); }
@@ -147,7 +149,9 @@ Java_org_alpha_hub_LlamaBridge_nativeGenerate(JNIEnv * env, jobject, jlong h, jo
         if (ok > 0) {
             std::string out = pending.substr(0, ok);
             pending.erase(0, ok);
-            jstring js = env->NewStringUTF(out.c_str());
+            jbyteArray js = env->NewByteArray((jsize) out.size());
+            if (!js) { result = -4; break; }
+            env->SetByteArrayRegion(js, 0, (jsize) out.size(), (const jbyte *) out.data());
             jboolean cont = env->CallBooleanMethod(cb, onTok, js);
             env->DeleteLocalRef(js);
             if (env->ExceptionCheck()) { env->ExceptionClear(); stopped = true; break; }

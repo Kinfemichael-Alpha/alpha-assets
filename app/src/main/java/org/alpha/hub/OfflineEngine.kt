@@ -107,6 +107,7 @@ class OfflineEngine(private val ctx: Context) {
     @Synchronized
     fun generate(roles: List<String>, contents: List<String>, maxTokens: Int, temp: Float, sink: TokenSink): Int {
         if (handle == 0L) throw OfflineError("model_load_failed")
-        return bridge.nativeGenerate(handle, roles.toTypedArray(), contents.toTypedArray(), maxTokens, temp, sink)
+        val bytes = Array(contents.size) { contents[it].replace("\u0000", "").toByteArray(Charsets.UTF_8) }
+        return bridge.nativeGenerate(handle, roles.toTypedArray(), bytes, maxTokens, temp, ByteSink { sink.onToken(String(it, Charsets.UTF_8)) })
     }
 }
