@@ -576,3 +576,7 @@ input[type=search].inp { width: 100%; }
 .msg.md .code-copy .ico { width: 16px; height: 16px; }
 .msg.md .md-code pre { margin: 0; padding: 4px 12px 12px; border-radius: 0; background: none; }
 .msg.md sup, .msg.md sub { font-size: .75em; }
+
+.edit-bar { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--tint); font-size: 13px; font-weight: 600; }
+.edit-bar .ico { width: 18px; height: 18px; color: var(--primary); flex: none; }
+.chip-x2 { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 20px; cursor: pointer; }

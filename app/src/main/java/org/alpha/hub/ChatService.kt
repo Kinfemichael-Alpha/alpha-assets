@@ -182,7 +182,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
                 }
                 synchronized(this) {
                     when {
-                        j.cancelled || r.finishReason == "STOPPED" -> { j.finish = "STOPPED"; j.status = "done" }
+                        j.cancelled || r.finishReason == "STOPPED" -> stopped(j, target, base, continuation, userText)
                         j.text.length == base.length -> {      // ባዶ ምላሽ (የታገደ ወይም ባዶ)
                             fail(j, target, if (r.blocked || r.finishReason == "SAFETY") "online_blocked" else "ai_empty", continuation, userText, r.info)
                         }
@@ -192,7 +192,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
                 }
             } catch (e: GeminiError) {
                 synchronized(this) {
-                    if (j.cancelled) { j.finish = "STOPPED"; j.status = "done"; persist() }
+                    if (j.cancelled) { stopped(j, target, base, continuation, userText); persist() }
                     else if (j.text.length > base.length) {
                         // የተመነጨው ክፍል ይጠበቃል፤ "ቀጥል" ይቀርባል / keep the partial text, offer "continue"
                         j.finish = "NETWORK"; j.error = msg(e.key); j.status = "done"; persist()
@@ -230,7 +230,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
                 }
                 synchronized(this) {
                     when {
-                        j.cancelled || rc == 1 -> { j.finish = "STOPPED"; j.status = "done" }
+                        j.cancelled || rc == 1 -> stopped(j, target, base, continuation, userText)
                         j.text.length == base.length -> fail(j, target, if (rc < 0) "err_server" else "ai_empty", continuation, userText)
                         rc < 0 -> { j.finish = "NETWORK"; j.error = msg("err_server"); j.status = "done" }
                         else -> { j.finish = if (rc == 2) "MAX_TOKENS" else "STOP"; j.status = "done" }
@@ -263,6 +263,27 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         for (m in picked) { roles.add(if (m.role == "user") "user" else "assistant"); contents.add(m.content) }
         if (continuation) { roles.add("user"); contents.add("Continue exactly from where you stopped. Do not repeat anything.") }
         return Pair(roles, contents)
+    }
+
+    private fun stopped(j: Job, target: Msg, base: String, continuation: Boolean, userText: String) {
+        j.finish = "STOPPED"; j.status = "done"
+        if (!continuation && j.text.length <= base.length) {
+            history.remove(target)
+            val u = history.lastOrNull()
+            if (u != null && u.role == "user" && u.content == userText) { u.img?.let { images.restore(it) }; history.removeAt(history.size - 1) }
+            j.restore = userText
+        }
+        persist()
+    }
+
+    @Synchronized fun edit(ordinal: Int, text: String): JSONObject {
+        if (job?.status == "running") throw ApiError(409, "err_busy")
+        var seen = -1; var at = -1
+        for ((i, m) in history.withIndex()) if (m.role == "user") { seen++; if (seen == ordinal) { at = i; break } }
+        if (at < 0) throw ApiError(404, "err_not_found")
+        while (history.size > at) history.removeAt(history.size - 1)
+        persist()
+        return send(text)
     }
 
     /** ምንም መልስ ሳይመጣ ሲከሽፍ: ባዶውን መልእክት ያስወግዳል፣ ጥያቄው ወደ ግብዓት ይመለሳል */

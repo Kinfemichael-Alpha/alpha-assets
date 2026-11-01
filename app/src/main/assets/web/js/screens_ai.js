@@ -24,6 +24,23 @@
       attachRow.append(h('div', { class: 'thumb' }, h('img', { src: attached.thumb, alt: '' }), rm));
     };
     drawChip();
+    const editBar = h('div', { class: 'edit-bar' });
+    let editing = null;
+    const drawEdit = () => {
+      A.clear(editBar);
+      editBar.style.display = editing ? '' : 'none';
+      if (!editing) return;
+      const x = h('button', { class: 'chip-x2', type: 'button', 'aria-label': t('edit_cancel') }, '×');
+      x.addEventListener('click', () => { editing = null; input.value = ''; autoGrow(); drawEdit(); });
+      editBar.append(A.icon('edit'), h('span', { class: 'grow' }, t('edit_editing')), x);
+    };
+    drawEdit();
+    function startEdit(b) {
+      if (pending) return A.toast(t('err_busy'));
+      const users = Array.from(list.querySelectorAll('.msg.user'));
+      editing = { ord: users.indexOf(b), bubble: b };
+      input.value = b._raw || ''; autoGrow(); input.focus(); drawEdit();
+    }
     const composer = h('div', { class: 'composer' }, attachBtn, input, sendBtn);
 
     const toBottom = () => { list.scrollTop = list.scrollHeight; };
@@ -43,7 +60,7 @@
       if (!b || !b._raw) return;
       const old = b.querySelector('.acts'); if (old) old.remove();
       const row = h('div', { class: 'acts' }, actBtn('copy', t('act_copy'), () => A.copy(b._raw)));
-      if (role === 'user') row.append(actBtn('edit', t('act_edit'), () => { input.value = b._raw; autoGrow(); input.focus(); }));
+      if (role === 'user') row.append(actBtn('edit', t('act_edit'), () => startEdit(b)));
       else {
         list.querySelectorAll('.msg.ai .regen').forEach((x) => x.remove());
         row.append(actBtn('refresh', t('act_regen'), () => regenerate(b)));
@@ -110,15 +127,22 @@
           if (j.text) show(j.text);
           setUsage(j.usage || 0);
           if (j.status === 'running') { await new Promise((r) => setTimeout(r, 120)); continue; }
-          if (j.status === 'error') {
-            tb.remove();
+          tb.remove();
+          if (j.status === 'done' && j.restore) {
+            if (target && !j.text) target.remove();
+            input.value = j.restore; autoGrow();
+            const users = list.querySelectorAll('.msg.user');
+            const lastUser = users[users.length - 1];
+            if (lastUser && lastUser._raw === j.restore) lastUser.remove();
+            A.get('/api/image/state').then((st) => { if (st.has) { attached = { thumb: st.thumb }; drawChip(); } }).catch(() => {});
+          } else if (j.status === 'error') {
             bubble('ai', (j.error || t('err_server')) + (j.detail ? '\n(' + j.detail + ')' : ''), 'err');
             if (j.restore) {
               input.value = j.restore; autoGrow();
               A.get('/api/image/state').then((st) => { if (st.has) { attached = { thumb: st.thumb }; drawChip(); } }).catch(() => {});
               const users = list.querySelectorAll('.msg.user');
               const lastUser = users[users.length - 1];
-              if (lastUser && lastUser.textContent === j.restore) lastUser.remove();
+              if (lastUser && lastUser._raw === j.restore) lastUser.remove();
             }
             if (ai && j.text) offerContinue(ai);
           } else {
@@ -133,6 +157,7 @@
         tb.remove();
         bubble('ai', e.message || t('err_server'), 'err');
       }
+      if (!list.children.length) welcome();
       pending = false; setSend(false); input.focus();
     }
 
@@ -159,17 +184,24 @@
       const shown = text || t('img_default_q');
       const thumb = attached && attached.thumb;
       input.value = ''; autoGrow(); dropHero();
+      const ed = editing;
+      if (ed) {
+        editing = null; drawEdit();
+        let n = ed.bubble;
+        while (n) { const nx = n.nextSibling; n.remove(); n = nx; }
+      }
       const ub = bubble('user', shown);
       if (thumb) ub.prepend(h('img', { class: 'msg-img', src: thumb, alt: '' }));
       decorate(ub, 'user');
       attached = null; drawChip();
       const tb = typing();
       try {
-        const r = await A.post('/api/chat/send', { text });
+        const r = ed ? await A.post('/api/chat/edit', { ordinal: ed.ord, text: shown }) : await A.post('/api/chat/send', { text });
         waitReply(r.job_id, tb);
       } catch (e) {
         tb.remove();
         input.value = text; autoGrow();
+        if (ed) { try { render(await A.get('/api/chat')); } catch (e2) { } }
         bubble('ai', e.message, 'err');
       }
     }
@@ -237,7 +269,7 @@
     const el = A.page(
       A.bar({ title: t('ai_title'), right: [menuBtn] }),
       mem,
-      h('div', { class: 'chat-wrap' }, list, attachRow, composer));
+      h('div', { class: 'chat-wrap' }, list, attachRow, editBar, composer));
 
     async function enter(force) {
       lock(true);

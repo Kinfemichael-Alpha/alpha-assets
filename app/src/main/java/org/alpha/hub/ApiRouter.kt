@@ -101,6 +101,7 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/chat/open" -> chat.open(b.optString("name"))
         "POST /api/chat/delete" -> chat.deleteSaved(b.optString("name"))
         "POST /api/chat/regenerate" -> chat.regenerate()
+        "POST /api/chat/edit" -> chat.edit(b.optInt("ordinal", -1), b.optString("text"))
         "GET /api/image/state" -> images.state()
         "POST /api/image/clear" -> { images.clear(); JSONObject().put("ok", true) }
         "POST /api/image/ocr" -> { val am = b.optBoolean("amharic"); study.runJob { j -> images.ocr(am) { j.phase = it } } }
