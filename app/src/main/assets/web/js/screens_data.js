@@ -89,6 +89,15 @@
     let providers = null, modelList = [];
     async function drawProv() {
       if (!providers) { try { providers = (await A.get('/api/providers')).providers; } catch (e) { return; } }
+      if (!providers.length) {
+        const rb = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_refresh'));
+        rb.addEventListener('click', async () => {
+          const ov = A.loading(t('sync_updating'), t('notice_title'));
+          try { const r = await A.post('/api/sync', { force: true }); await A.poll(r.job_id); ov.close(); providers = null; drawProv(); } catch (e) { ov.fail(e.message || t('err_server')); }
+        });
+        A.clear(secProv).append(h('div', { class: 'h-sec' }, t('set_provider')), h('p', { class: 'muted' }, t('no_providers')), rb);
+        return;
+      }
       const cur = providers.find((p) => p.active) || providers[0];
       const refresh = async (r) => { providers = r.providers; if (r.settings) A.S.state.settings = r.settings; drawProv(); drawAi(); };
       const sel = h('select', { class: 'inp', 'aria-label': t('set_provider') });

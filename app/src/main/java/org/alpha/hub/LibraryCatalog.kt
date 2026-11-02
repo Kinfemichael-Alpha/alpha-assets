@@ -1,6 +1,5 @@
 package org.alpha.hub
 
-import android.content.Context
 import org.json.JSONObject
 
 /** መጻሕፍት / ፈተናዎች ዝርዝር ንጥል / one downloadable file */
@@ -19,11 +18,9 @@ object LibraryCatalog {
     private val badChars = Regex("[\\\\/:*?\"<>|\\u0000-\\u001f]")
     private fun safe(s: String) = s.replace(badChars, " ").replace(Regex("\\s+"), " ").trim().take(120)
 
-    fun load(ctx: Context, kind: String, cached: String? = null): List<LibGroup> {
-        if (cached != null) {
-            try { val g = parse(JSONObject(cached)); if (g.isNotEmpty()) return g } catch (_: Exception) { }
-        }
-        return parse(JSONObject(ctx.assets.open("$kind.json").bufferedReader(Charsets.UTF_8).readText()))
+    fun load(cached: String?): List<LibGroup> {
+        if (cached == null) return emptyList()
+        return try { parse(JSONObject(cached)) } catch (_: Exception) { emptyList() }
     }
 
     fun parse(root: JSONObject): List<LibGroup> {

@@ -8,20 +8,37 @@ import org.json.JSONObject
 
 class ConfigSync(private val ctx: Context) {
     private val base = "https://huggingface.co/datasets/Kinfemichael/Alpha-links/raw/main/"
-    private val files = listOf("contacts.json", "books.json", "exams.json")
+    val files = listOf("contacts.json", "books.json", "models.json", "providers.json")
     private val dir get() = File(ctx.filesDir, "config").apply { mkdirs() }
     private val meta get() = File(dir, "meta.json")
+    private val memo = HashMap<String, Pair<Long, String>>()
+
+    @Volatile var version = 0
+        private set
 
     private fun readMeta(): JSONObject = try { JSONObject(meta.readText(Charsets.UTF_8)) } catch (_: Exception) { JSONObject() }
 
-    fun cached(name: String): String? = try { File(dir, name).takeIf { it.exists() }?.readText(Charsets.UTF_8) } catch (_: Exception) { null }
+    @Synchronized
+    fun cached(name: String): String? {
+        val f = File(dir, name)
+        if (!f.exists()) return null
+        val m = memo[name]
+        if (m != null && m.first == f.lastModified() + f.length()) return m.second
+        return try { f.readText(Charsets.UTF_8).also { memo[name] = Pair(f.lastModified() + f.length(), it) } } catch (_: Exception) { null }
+    }
 
-    fun due(): Boolean = System.currentTimeMillis() - readMeta().optLong("last", 0L) > 24L * 3600L * 1000L
+    fun due(): Boolean {
+        val m = readMeta()
+        if (System.currentTimeMillis() - m.optLong("last", 0L) > 24L * 3600L * 1000L) return true
+        val checked = m.optJSONObject("checked") ?: JSONObject()
+        return files.any { !File(dir, it).exists() && !checked.optBoolean(it) }
+    }
 
     @Synchronized
     fun refresh(validate: (String, String) -> Boolean): JSONObject {
         val m = readMeta()
         val etags = m.optJSONObject("etags") ?: JSONObject()
+        val checked = m.optJSONObject("checked") ?: JSONObject()
         var changed = 0; var failed = 0
         for (f in files) {
             try {
@@ -31,23 +48,25 @@ class ConfigSync(private val ctx: Context) {
                 val have = File(dir, f).exists()
                 if (have && etags.optString(f).isNotEmpty()) c.setRequestProperty("If-None-Match", etags.optString(f))
                 val code = c.responseCode
-                if (code == 304) { c.disconnect(); continue }
-                if (code != 200) { c.disconnect(); if (code != 404) failed++; continue }
+                if (code == 304) { c.disconnect(); checked.put(f, true); continue }
+                if (code == 404) { c.disconnect(); checked.put(f, true); continue }
+                if (code != 200) { c.disconnect(); failed++; continue }
                 val bytes = c.inputStream.use { it.readBytes() }
                 val tag = c.getHeaderField("ETag") ?: ""
                 c.disconnect()
-                if (bytes.size > 4 * 1024 * 1024) continue
+                if (bytes.size > 4 * 1024 * 1024) { failed++; continue }
                 val text = String(bytes, Charsets.UTF_8)
-                JSONObject(text)
-                if (!validate(f, text)) continue
+                if (!validate(f, text)) { failed++; continue }
                 val tmp = File(dir, "$f.tmp"); tmp.writeText(text, Charsets.UTF_8); tmp.renameTo(File(dir, f))
                 if (tag.isNotEmpty()) etags.put(f, tag)
+                checked.put(f, true)
                 changed++
             } catch (_: Exception) { failed++ }
         }
         if (failed < files.size) m.put("last", System.currentTimeMillis())
-        m.put("etags", etags)
+        m.put("etags", etags).put("checked", checked)
         try { meta.writeText(m.toString(), Charsets.UTF_8) } catch (_: Exception) { }
+        if (changed > 0) version++
         return JSONObject().put("changed", changed).put("failed", failed)
     }
 }

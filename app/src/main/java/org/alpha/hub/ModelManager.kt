@@ -5,14 +5,24 @@ import java.io.File
 import org.json.JSONArray
 import org.json.JSONObject
 
-class ModelManager(private val ctx: Context, private val settings: SettingsStore, private val engine: OfflineEngine, private val msg: (String) -> String) {
+class ModelManager(private val ctx: Context, private val settings: SettingsStore, private val engine: OfflineEngine, private val source: () -> String?, private val msg: (String) -> String) {
     class Entry(val title: String, val filename: String, val url: String, val sizeMb: Int, val minRamGb: Int)
 
     val dir: File get() = File(ctx.filesDir, "models").apply { mkdirs() }
 
-    private val catalog: List<Entry> by lazy {
-        val a = JSONArray(ctx.assets.open("models.json").bufferedReader(Charsets.UTF_8).readText())
-        (0 until a.length()).map { val o = a.getJSONObject(it); Entry(o.getString("title"), o.getString("filename"), o.getString("url"), o.getInt("size_mb"), o.optInt("min_ram_gb", 4)) }
+    private var catText: String? = null
+    private var catParsed: List<Entry> = emptyList()
+    private val catalog: List<Entry> get() {
+        val txt = source()
+        if (txt == null) return emptyList()
+        if (txt != catText) {
+            catParsed = try {
+                val a = JSONArray(txt)
+                (0 until a.length()).map { val o = a.getJSONObject(it); Entry(o.getString("title"), o.getString("filename"), o.getString("url"), o.getInt("size_mb"), o.optInt("min_ram_gb", 4)) }
+            } catch (_: Exception) { emptyList() }
+            catText = txt
+        }
+        return catParsed
     }
 
     fun entry(filename: String): Entry? = catalog.firstOrNull { it.filename == filename }

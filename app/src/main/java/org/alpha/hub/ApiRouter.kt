@@ -34,17 +34,17 @@ class ApiRouter(private val ctx: Context) {
         if (e is java.net.UnknownHostException || e is java.net.SocketTimeoutException || e is java.net.ConnectException)
             msg("online_no_internet") else msg("dl_failed").replace("{err}", "").trim().trimEnd(':').trim()
     }
-    private val catalogCache = HashMap<String, List<LibGroup>>()
+    private val catalogCache = HashMap<String, Pair<Int, List<LibGroup>>>()
     // የ AI ውይይት (Gemini ቀጥታ መልስ) / AI chat with live Gemini streaming
     private val engine = OfflineEngine(ctx).also { it.turbo = { System.currentTimeMillis() < settings.getLong("turbo_until") } }
-    private val models = ModelManager(ctx, settings, engine) { msg(it) }
+    private val models = ModelManager(ctx, settings, engine, { sync.cached("models.json") }) { msg(it) }
     @Volatile private var crashModel = ""
     init {
         val c = engine.crashedModel()
         if (c.isNotEmpty()) { crashModel = c; if (settings.getString("active_model") == c) settings.set("active_model", "") }
     }
     fun onBackground() { Thread { chat.stop(); engine.unload() }.start() }
-    private val llm = LlmService(ctx, settings)
+    private val llm = LlmService(settings) { sync.cached("providers.json") }
     val images = ImageService(ctx) { msg(it) }
     private val exams = ExamService(ctx)
     private val chat = ChatService(ctx, settings, llm, engine, models, images) { msg(it) }
@@ -174,20 +174,33 @@ class ApiRouter(private val ctx: Context) {
 
     private fun syncNow(): JSONObject {
         val r = sync.refresh { name, text ->
-            if (name == "books.json" || name == "exams.json") try { LibraryCatalog.parse(JSONObject(text)).isNotEmpty() } catch (_: Exception) { false } else true
+            try {
+                when (name) {
+                    "books.json" -> LibraryCatalog.parse(JSONObject(text)).isNotEmpty()
+                    "models.json" -> JSONArray(text).let { a -> a.length() > 0 && (0 until a.length()).all { a.getJSONObject(it).let { o -> o.has("title") && o.has("filename") && o.has("url") && o.has("size_mb") } } }
+                    "providers.json" -> JSONArray(text).let { a -> a.length() > 0 && (0 until a.length()).all { a.getJSONObject(it).let { o -> o.has("id") && o.has("name") && o.has("type") } } }
+                    else -> JSONObject(text).length() >= 0
+                }
+            } catch (_: Exception) { false }
         }
-        catalogCache.clear()
         return r
     }
 
-    init { Thread { try { if (sync.due()) syncNow() } catch (_: Exception) { } }.apply { isDaemon = true }.start() }
+    init {
+        Thread {
+            while (true) {
+                try { if (sync.due()) syncNow() } catch (_: Exception) { }
+                try { Thread.sleep(30L * 60L * 1000L) } catch (_: InterruptedException) { return@Thread }
+            }
+        }.apply { isDaemon = true }.start()
+    }
 
     private val phoneRe = Regex("^\\+?[0-9][0-9 \\-()]{5,19}$")
     private val tgRe = Regex("^@?[A-Za-z0-9_]{4,32}$")
     private val mailRe = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
 
     private fun contacts(): JSONObject {
-        val o = try { JSONObject(sync.cached("contacts.json") ?: throw Exception()) } catch (_: Exception) { readAsset("contacts.json") }
+        val o = try { JSONObject(sync.cached("contacts.json") ?: throw Exception()) } catch (_: Exception) { JSONObject() }
         fun list(k: String, re: Regex?): JSONArray {
             val raw = o.opt(k); val out = JSONArray()
             val items = when (raw) { is JSONArray -> (0 until raw.length()).map { raw.optString(it) }; is String -> listOf(raw); else -> emptyList() }
@@ -382,10 +395,16 @@ class ApiRouter(private val ctx: Context) {
 
     // ---- library (መጻሕፍት + ፈተናዎች)
     private fun kindOf(b: JSONObject): String {
-        val k = b.optString("kind"); if (k != "books" && k != "exams") throw ApiError(400, "err_bad_request"); return k
+        val k = b.optString("kind"); if (k != "books") throw ApiError(400, "err_bad_request"); return k
     }
     private fun libDir(kind: String) = File(ctx.filesDir, kind).apply { mkdirs() }
-    private fun catalog(kind: String) = catalogCache.getOrPut(kind) { LibraryCatalog.load(ctx, kind, sync.cached("$kind.json")) }
+    private fun catalog(kind: String): List<LibGroup> {
+        val c = catalogCache[kind]
+        if (c != null && c.first == sync.version) return c.second
+        val g = LibraryCatalog.load(sync.cached("$kind.json"))
+        if (g.isNotEmpty()) catalogCache[kind] = Pair(sync.version, g)
+        return g
+    }
     private fun libFile(kind: String, name: String): File {
         if (!name.endsWith(".pdf") || name.contains('/') || name.contains('\\')) throw ApiError(400, "err_bad_request")
         return File(libDir(kind), name)

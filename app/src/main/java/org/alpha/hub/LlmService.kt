@@ -12,10 +12,16 @@ import javax.net.ssl.SSLException
 import org.json.JSONArray
 import org.json.JSONObject
 
-class LlmService(ctx: Context, private val settings: SettingsStore) {
+class LlmService(private val settings: SettingsStore, private val source: () -> String?) {
     private val gemini = GeminiClient()
     private val wire = WireClient()
-    private val presets: JSONArray = JSONArray(ctx.assets.open("providers.json").bufferedReader(Charsets.UTF_8).readText())
+    private var presText: String? = null
+    private var presParsed = JSONArray()
+    private val presets: JSONArray get() {
+        val txt = source() ?: return JSONArray()
+        if (txt != presText) { presParsed = try { JSONArray(txt) } catch (_: Exception) { JSONArray() }; presText = txt }
+        return presParsed
+    }
     private val modelCache = HashMap<String, String>()
 
     private fun preset(id: String): JSONObject? {
