@@ -41,7 +41,23 @@
       editing = { ord: users.indexOf(b), bubble: b };
       input.value = b._raw || ''; autoGrow(); input.focus(); drawEdit();
     }
-    const composer = h('div', { class: 'composer' }, attachBtn, input, sendBtn);
+    const trBtn = h('button', { class: 'bar-btn attach', type: 'button', 'aria-label': t('tr_typed_btn'), title: t('tr_typed_btn') }, A.icon('translate'));
+    let trBackup = null;
+    trBtn.addEventListener('click', async () => {
+      if (pending) return;
+      if (trBackup !== null && input.value === trBackup.out) { input.value = trBackup.src; trBackup = null; autoGrow(); return; }
+      const text = input.value.trim();
+      if (!text) return A.toast(t('tr_type_empty'));
+      const ov = A.loading(t('tr_loading'), t('tr_typed_btn'));
+      try {
+        const r = await A.post('/api/translate', { text });
+        const res = (await A.poll(r.job_id, (j) => { ov.set(j.phase === 'loading' ? t('tr_loading') : t('tr_working')); })).result;
+        ov.close();
+        trBackup = { src: input.value, out: res.text };
+        input.value = res.text; autoGrow(); input.focus();
+      } catch (e) { ov.fail(e.message || t('err_server')); }
+    });
+    const composer = h('div', { class: 'composer' }, attachBtn, trBtn, input, sendBtn);
 
     const toBottom = () => { list.scrollTop = list.scrollHeight; };
     const bubble = (role, text, extra) => {
@@ -59,7 +75,7 @@
     const decorate = (b, role) => {
       if (!b || !b._raw) return;
       const old = b.querySelector('.acts'); if (old) old.remove();
-      const row = h('div', { class: 'acts' }, actBtn('copy', t('act_copy'), () => A.copy(b._raw)));
+      const row = h('div', { class: 'acts' }, actBtn('copy', t('act_copy'), () => A.copy(b._raw)), actBtn('translate', t('act_translate'), () => translateMsg(b)));
       if (role === 'user') row.append(actBtn('edit', t('act_edit'), () => startEdit(b)));
       else {
         list.querySelectorAll('.msg.ai .regen').forEach((x) => x.remove());
@@ -68,6 +84,31 @@
       }
       b.append(row);
     };
+    function showTr(b, text) {
+      const old = b.querySelector('.trbox'); if (old) old.remove();
+      if (!text) return;
+      const box = h('div', { class: 'trbox' });
+      A.md(box, text);
+      const acts = b.querySelector('.acts');
+      if (acts) b.insertBefore(box, acts); else b.append(box);
+      b._tr = text; b._trShown = true;
+    }
+    async function translateMsg(b) {
+      if (pending) return A.toast(t('err_busy'));
+      if (b._tr) {
+        const box = b.querySelector('.trbox');
+        if (box) { box.remove(); b._trShown = false; } else showTr(b, b._tr);
+        return;
+      }
+      const ov = A.loading(t('tr_loading'), t('act_translate'));
+      try {
+        const r = await A.post('/api/chat/translate', { text: b._raw });
+        const res = (await A.poll(r.job_id, (j) => { ov.set(j.phase === 'loading' ? t('tr_loading') : t('tr_working')); })).result;
+        ov.close();
+        showTr(b, res.text);
+        toBottom();
+      } catch (e) { ov.fail(e.message || t('err_server')); }
+    }
     async function regenerate(b) {
       if (pending) return;
       try {
@@ -103,7 +144,7 @@
       const pend = !!view.pending;
       view.messages.forEach((m, i) => {
         const b = bubble(m.role === 'user' ? 'user' : 'ai', m.content, m.error ? 'err' : '');
-        if (!m.error && !(pend && i >= view.messages.length - 1)) decorate(b, m.role === 'user' ? 'user' : 'ai');
+        if (!m.error && !(pend && i >= view.messages.length - 1)) { decorate(b, m.role === 'user' ? 'user' : 'ai'); if (m.tr) showTr(b, m.tr); }
       });
       setUsage(view.usage || 0);
     }

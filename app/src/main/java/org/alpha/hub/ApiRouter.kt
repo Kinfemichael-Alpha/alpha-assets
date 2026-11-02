@@ -47,6 +47,7 @@ class ApiRouter(private val ctx: Context) {
     private val llm = LlmService(settings) { sync.cached("providers.json") }
     val images = ImageService(ctx) { msg(it) }
     private val exams = ExamService(ctx)
+    private val translator = TranslatorService(ctx, settings, engine, downloader)
     private val chat = ChatService(ctx, settings, llm, engine, models, images) { msg(it) }
     private val study = StudyService(ctx, settings, llm, engine, models) { msg(it) }
 
@@ -92,8 +93,15 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/provider/models" -> providerModels(b)
         "POST /api/ai/test" -> chat.test()
         "GET /api/chat" -> chat.view()
-        "POST /api/chat/send" -> chat.send(b.optString("text"))
-        "POST /api/chat/continue" -> chat.continueReply()
+        "POST /api/chat/send" -> { busyTr(); chat.send(b.optString("text")) }
+        "GET /api/translator" -> translator.list()
+        "POST /api/translator/download" -> translator.download(b.optString("input"))
+        "POST /api/translator/activate" -> { translator.activate(b.optString("name")); translator.list() }
+        "POST /api/translator/deactivate" -> { translator.deactivate(); translator.list() }
+        "POST /api/translator/delete" -> { translator.delete(b.optString("name")); translator.list() }
+        "POST /api/translate" -> translateJob(b.optString("text"), b.optString("to"), null)
+        "POST /api/chat/translate" -> translateJob(b.optString("text"), b.optString("to"), b.optString("text"))
+        "POST /api/chat/continue" -> { busyTr(); chat.continueReply() }
         "POST /api/chat/stop" -> { chat.stop(); JSONObject().put("ok", true) }
         "GET /api/chat/poll" -> chat.poll(b.optString("job_id"))
         "POST /api/chat/new" -> chat.newChat()
@@ -101,8 +109,8 @@ class ApiRouter(private val ctx: Context) {
         "GET /api/chat/saved" -> chat.saved()
         "POST /api/chat/open" -> chat.open(b.optString("name"))
         "POST /api/chat/delete" -> chat.deleteSaved(b.optString("name"))
-        "POST /api/chat/regenerate" -> chat.regenerate()
-        "POST /api/chat/edit" -> chat.edit(b.optInt("ordinal", -1), b.optString("text"))
+        "POST /api/chat/regenerate" -> { busyTr(); chat.regenerate() }
+        "POST /api/chat/edit" -> { busyTr(); chat.edit(b.optInt("ordinal", -1), b.optString("text")) }
         "GET /api/image/state" -> images.state()
         "POST /api/image/clear" -> { images.clear(); JSONObject().put("ok", true) }
         "POST /api/image/ocr" -> { val am = b.optBoolean("amharic"); study.runJob { j -> images.ocr(am) { j.phase = it } } }
@@ -280,6 +288,18 @@ class ApiRouter(private val ctx: Context) {
         val e = models.entry(b.optString("filename")) ?: throw ApiError(404, "err_not_found")
         if (!downloader.start(e.url, File(models.dir, e.filename), e.filename, models.cleanTitle(e.filename), "public")) throw ApiError(409, "dl_busy")
         return JSONObject().put("ok", true)
+    }
+
+    private fun busyTr() { if (translator.running) throw ApiError(409, "err_busy") }
+
+    private fun translateJob(text: String, to: String, store: String?): JSONObject {
+        if (chat.isBusy() || translator.running) throw ApiError(409, "err_busy")
+        if (store != null && !chat.findTranslatable(store)) throw ApiError(404, "err_not_found")
+        return study.runJob { j ->
+            val out = translator.translate(text, to) { j.phase = it }
+            if (store != null) chat.setTranslation(store, out)
+            JSONObject().put("text", out)
+        }
     }
 
     private fun chatSave(): JSONObject {

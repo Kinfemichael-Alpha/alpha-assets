@@ -615,3 +615,5 @@ select.inp { appearance: auto; }
 
 .topicbox summary { display: flex; align-items: center; gap: 10px; font-weight: 800; cursor: pointer; }
 .topicbox[open] summary { margin-bottom: 8px; }
+
+.trbox { margin-top: 8px; padding-top: 8px; border-top: 1.5px dashed var(--line); }

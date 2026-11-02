@@ -27,6 +27,8 @@ class SettingsStore(ctx: Context) {
         .put("temperature", 0.45)        // 0.4-0.5 ነባሪ / default
         .put("resp_len", "long")         // short | long
         .put("active_model", "")
+        .put("active_translator", "")
+        .put("translator_prompt", "")
         .put("provider", "gemini")
         .put("points", 0)
         .put("debug_details", false)
@@ -58,6 +60,8 @@ class SettingsStore(ctx: Context) {
         data.put("max_tokens", data.optInt("max_tokens", 2048).coerceIn(256, 8192))
         data.put("temperature", data.optDouble("temperature", 0.45).let { if (it.isNaN()) 0.45 else it }.coerceIn(0.0, 1.0))
         data.put("active_model", data.optString("active_model").takeIf { !it.contains('/') && !it.contains('\\') } ?: "")
+        data.put("active_translator", data.optString("active_translator").takeIf { !it.contains('/') && !it.contains('\\') } ?: "")
+        data.put("translator_prompt", data.optString("translator_prompt").take(600))
         if (data.opt("debug_details") !is Boolean) data.put("debug_details", false)
         data.put("points", data.optInt("points", 0).coerceIn(0, 100000))
         for (k in listOf("skip_until", "turbo_until", "last_inter")) data.put(k, data.optLong(k, 0L).coerceAtLeast(0L))
@@ -90,7 +94,7 @@ class SettingsStore(ctx: Context) {
     fun reset() {
         val nick = data.optString("nickname"); val on = data.optBoolean("onboarded"); val old = data
         data = defaults(); data.put("defaults_v2", true); data.put("nickname", nick); data.put("onboarded", on)
-        for (k in listOf("gemini_key", "provider", "provider_cfg", "points", "skip_until", "turbo_until")) if (old.has(k)) data.put(k, old.get(k))
+        for (k in listOf("gemini_key", "provider", "provider_cfg", "points", "skip_until", "turbo_until", "active_translator", "translator_prompt")) if (old.has(k)) data.put(k, old.get(k))
         save()
     }
 }

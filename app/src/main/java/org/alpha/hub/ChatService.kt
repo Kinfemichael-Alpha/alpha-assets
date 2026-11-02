@@ -15,7 +15,7 @@ import org.json.JSONObject
  * መልሱ እየተመነጨ ያለው ጽሁፍ ወዲያው በ [Job.text] ውስጥ ይከማቻል፤ UI በፍጥነት ይጠይቃል (poll)።
  */
 class ChatService(private val ctx: Context, private val settings: SettingsStore, private val llm: LlmService, private val engine: OfflineEngine, private val models: ModelManager, private val images: ImageService, private val msg: (String) -> String) {
-    class Msg(val role: String, var content: String, var error: Boolean = false, @Volatile var img: String? = null)
+    class Msg(val role: String, var content: String, var error: Boolean = false, @Volatile var img: String? = null, @Volatile var tr: String? = null)
 
     /** አንድ የመልስ ሥራ / one reply job */
     class Job(val id: String) {
@@ -49,22 +49,32 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         try {
             if (!file.exists()) return
             val a = JSONArray(file.readText(Charsets.UTF_8))
-            for (i in 0 until a.length()) { val o = a.getJSONObject(i); history.add(Msg(o.getString("role"), o.getString("content"), o.optBoolean("error"))) }
+            for (i in 0 until a.length()) { val o = a.getJSONObject(i); history.add(Msg(o.getString("role"), o.getString("content"), o.optBoolean("error"), null, o.optString("tr").ifEmpty { null })) }
         } catch (_: Exception) { history.clear() }
     }
     @Synchronized private fun persist() {
         try {
-            val a = JSONArray(); for (m in history) a.put(JSONObject().put("role", m.role).put("content", m.content).put("error", m.error))
+            val a = JSONArray(); for (m in history) a.put(JSONObject().put("role", m.role).put("content", m.content).put("error", m.error).put("tr", m.tr ?: ""))
             val tmp = File(file.path + ".tmp"); tmp.writeText(a.toString(), Charsets.UTF_8); tmp.renameTo(file)
         } catch (_: Exception) { }
     }
 
     @Synchronized fun view(): JSONObject {
         val a = JSONArray()
-        for (m in history) a.put(JSONObject().put("role", m.role).put("content", m.content).put("error", m.error))
+        for (m in history) a.put(JSONObject().put("role", m.role).put("content", m.content).put("error", m.error).put("tr", m.tr ?: ""))
         val j = job
         return JSONObject().put("messages", a).put("usage", usage())
             .put("pending", if (j != null && j.status == "running") j.id else JSONObject.NULL)
+    }
+
+    @Synchronized fun isBusy(): Boolean = job?.status == "running"
+
+    @Synchronized fun findTranslatable(text: String): Boolean = history.any { !it.error && it.content == text }
+
+    @Synchronized fun setTranslation(text: String, tr: String) {
+        val m = history.lastOrNull { !it.error && it.content == text } ?: return
+        m.tr = tr
+        persist()
     }
 
     @Synchronized fun newChat(): JSONObject {
@@ -88,7 +98,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
     @Synchronized fun save(): JSONObject {
         if (history.none { !it.error }) throw ApiError(400, "chat_save_empty")
         val name = "chat_" + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date()) + ".json"
-        val a = JSONArray(); for (m in history) if (!m.error) a.put(JSONObject().put("role", m.role).put("content", m.content))
+        val a = JSONArray(); for (m in history) if (!m.error) a.put(JSONObject().put("role", m.role).put("content", m.content).put("tr", m.tr ?: ""))
         val title = history.firstOrNull { it.role == "user" && !it.error }?.content?.replace(Regex("\\s+"), " ")?.take(60) ?: ""
         File(chatsDir(), name).writeText(JSONObject().put("title", title).put("messages", a).toString(), Charsets.UTF_8)
         return JSONObject().put("ok", true).put("name", name)
@@ -116,7 +126,7 @@ class ChatService(private val ctx: Context, private val settings: SettingsStore,
         if (!f.exists()) throw ApiError(404, "err_not_found")
         val ms = try { JSONObject(f.readText(Charsets.UTF_8)).getJSONArray("messages") } catch (_: Exception) { throw ApiError(404, "err_not_found") }
         history.clear()
-        for (i in 0 until ms.length()) { val m = ms.getJSONObject(i); history.add(Msg(m.getString("role"), m.getString("content"))) }
+        for (i in 0 until ms.length()) { val m = ms.getJSONObject(i); history.add(Msg(m.getString("role"), m.getString("content"), false, null, m.optString("tr").ifEmpty { null })) }
         job = null; persist()
         return view()
     }

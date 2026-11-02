@@ -34,8 +34,10 @@
     const secAi = h('div', { class: 'card stack' });
     const secModels = h('div', { class: 'card' });
     const secPublic = h('div', { class: 'card' });
+    const secTrans = h('div', { class: 'card stack' });
+    let trData = { downloaded: [] };
     const secProfile = h('div', { class: 'card stack' });   // አማራጭ ቅጽል ስም
-    const panel = progressPanel((s) => s.scope === 'public');
+    const panel = progressPanel((s) => s.scope === 'public' || s.scope === 'translator');
     let lastState = 'idle', started = false;
 
     const refreshBtn = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_refresh'));
@@ -278,6 +280,44 @@
       });
       A.scheduleMarquees();
     }
+    function drawTrans() {
+      const inp = h('input', { class: 'inp', type: 'text', autocomplete: 'off', spellcheck: 'false', placeholder: t('tr_url_label'), 'aria-label': t('tr_url_label') });
+      const dl = h('button', { class: 'btn block', type: 'button' }, t('btn_download'));
+      dl.addEventListener('click', async () => {
+        const v = inp.value.trim();
+        if (!v) return;
+        if (!(await A.confirm(t('confirm_download', { name: t('tr_model_name') })))) return;
+        try {
+          await A.post('/api/translator/download', { input: v });
+          inp.value = '';
+          started = true;
+          watcher.kick();
+        } catch (e) { A.info(e.message); }
+      });
+      A.clear(secTrans).append(h('div', { class: 'h-sec' }, t('set_translator')), h('p', { class: 'muted small' }, t('tr_url_hint')),
+        inp, dl);
+      if (!trData.downloaded.length) secTrans.append(h('p', { class: 'muted' }, t('tr_none')));
+      const hasActive = trData.downloaded.some((m) => m.active);
+      trData.downloaded.forEach((m) => {
+        const act = h('button', { class: 'btn sm ' + (m.active ? 'bad' : 'ok'), type: 'button' }, m.active ? t('btn_deactivate') : t('btn_activate'));
+        act.addEventListener('click', async () => {
+          try {
+            if (!m.active && hasActive && !(await A.confirm(t('confirm_switch_model', { name: m.title })))) return;
+            trData = await A.post(m.active ? '/api/translator/deactivate' : '/api/translator/activate', { name: m.name });
+            drawTrans();
+          } catch (e) { A.info(e.message); }
+        });
+        const del = h('button', { class: 'btn sm ghost', type: 'button' }, t('btn_delete'));
+        del.addEventListener('click', async () => {
+          if (!(await A.confirm(t('confirm_delete_model', { name: m.title })))) return;
+          try { trData = await A.post('/api/translator/delete', { name: m.name }); drawTrans(); } catch (e) { A.info(e.message); }
+        });
+        secTrans.append(h('div', { class: 'item' }, h('span', { class: 'badge' }, m.active ? '●' : '○'),
+          h('div', { class: 'grow' }, A.mq(m.title), h('div', { class: 'muted small' }, A.fmtSize(m.size_mb))), act, del));
+      });
+      A.scheduleMarquees();
+    }
+
     /* ----- ቅጽል ስም (አማራጭ): AI የሚጠራበት። ባዶ ማድረግ ይቻላል */
     function drawProfile() {
       const inp = h('input', { class: 'inp', type: 'text', maxlength: '40', 'aria-label': t('set_nickname') });
@@ -296,7 +336,8 @@
     async function load() {
       try { data = await A.get('/api/models'); } catch (e) { return A.info(e.message); }
       A.S.state.settings = data.settings;
-      drawAi(); drawModels(); drawPublic(); drawProv();
+      try { trData = await A.get('/api/translator'); } catch (e) { /* ችላ */ }
+      drawAi(); drawModels(); drawPublic(); drawProv(); drawTrans();
     }
 
     /* የማውረድ ሁኔታ ሲቀየር: ተጠናቀቀ -> ዝርዝር ያድሳል */
@@ -324,8 +365,8 @@
 
     const el = A.page(
       A.bar({ title: t('settings_title') }),
-      h('div', { class: 'scroll ruled stack' }, secTheme, secLang, secProfile, secProv, secAi, panel.el, secModels, secPublic, resetBtn));
-    drawTheme(); drawLang(); drawProfile(); drawAi(); drawProv();
+      h('div', { class: 'scroll ruled stack' }, secTheme, secLang, secProfile, secProv, secAi, panel.el, secModels, secPublic, secTrans, resetBtn));
+    drawTheme(); drawLang(); drawProfile(); drawAi(); drawProv(); drawTrans();
 
     return {
       el,
