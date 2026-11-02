@@ -580,3 +580,26 @@ input[type=search].inp { width: 100%; }
 .edit-bar { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--tint); font-size: 13px; font-weight: 600; }
 .edit-bar .ico { width: 18px; height: 18px; color: var(--primary); flex: none; }
 .chip-x2 { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 20px; cursor: pointer; }
+
+/* ---------- past exams ---------- */
+.card.subj { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
+.card.subj .ico svg { width: 22px; height: 22px; }
+.plain-row { display: block; width: 100%; text-align: left; padding: 6px 0; background: none; border: 0; }
+.chk { display: flex; align-items: center; gap: 10px; min-height: 40px; font-weight: 600; }
+.chk input { width: 22px; height: 22px; flex: none; accent-color: var(--primary); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 36px; padding: 4px 14px; border: 1.5px solid var(--line); border-radius: 18px; background: var(--surface); font-weight: 700; }
+select.inp { appearance: auto; }
+.exam-nav { flex: none; display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1.5px solid var(--line); }
+.exam-nav .btn { flex: 1; }
+.opt.picked { background: var(--tint); border-color: var(--primary); }
+.opt.picked .ltr { background: var(--primary); color: var(--white); border-color: var(--primary); }
+.opt .md, .opt .md p { margin: 0; }
+.q-text.md p { margin: 0 0 6px; }
+.passage { padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--tint); font-size: 15px; }
+.passage summary { font-weight: 800; cursor: pointer; }
+.pass-body { margin-top: 8px; max-height: 40vh; overflow: auto; }
+.qgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-height: 50vh; overflow: auto; }
+.qcell { min-height: 42px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); font-weight: 800; }
+.qcell.done { background: var(--okbg); border-color: var(--ok); }
+.qcell.cur { outline: 3px solid var(--primary); }

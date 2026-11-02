@@ -46,6 +46,7 @@ class ApiRouter(private val ctx: Context) {
     fun onBackground() { Thread { chat.stop(); engine.unload() }.start() }
     private val llm = LlmService(ctx, settings)
     val images = ImageService(ctx) { msg(it) }
+    private val exams = ExamService(ctx)
     private val chat = ChatService(ctx, settings, llm, engine, models, images) { msg(it) }
     private val study = StudyService(ctx, settings, llm, engine, models) { msg(it) }
 
@@ -117,6 +118,12 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/notes/generate" -> study.noteGenerate(b)
         "POST /api/notes/save" -> study.noteSave(b)
         "POST /api/notes/delete" -> study.noteDelete(b)
+        "GET /api/exams/index" -> exams.index(b.optBoolean("refresh"))
+        "GET /api/exams/get" -> exams.get(b.optString("id"), b.optString("path"))
+        "POST /api/exams/remove" -> exams.remove(b.optString("id"))
+        "POST /api/exams/attempt" -> exams.attempt(b)
+        "GET /api/exams/stats" -> exams.stats()
+        "POST /api/exams/reset" -> exams.reset()
         "GET /api/progress" -> study.progress()
         "POST /api/progress/reset" -> study.progressReset()
         "GET /api/models" -> models.list().put("settings", settingsView()).put("download", downloader.snapshot())
