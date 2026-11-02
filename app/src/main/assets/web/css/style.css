@@ -603,3 +603,5 @@ select.inp { appearance: auto; }
 .qcell { min-height: 42px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); font-weight: 800; }
 .qcell.done { background: var(--okbg); border-color: var(--ok); }
 .qcell.cur { outline: 3px solid var(--primary); }
+.note-body.md { white-space: normal; }
+.opt .md, .explain.md { white-space: normal; }

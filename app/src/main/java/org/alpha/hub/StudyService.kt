@@ -113,7 +113,7 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
                 val format = if (qtype == "tf") "Q: a true/false statement\nANSWER: True or False\nEXPLANATION: one short sentence"
                     else "Q: question text\nA) option\nB) option\nC) option\nD) option\nANSWER: the correct letter\nEXPLANATION: one short sentence"
                 val kind = if (qtype == "tf") "true/false" else "multiple-choice"
-                val user = "Topic: $topic\nWrite ONE $kind exam question in English. Use exactly this format and nothing else:\n$format$avoid"
+                val user = "Topic: $topic\nWrite ONE $kind exam question in English. Use exactly this format and nothing else:\n$format$avoid\nWrite any formula or equation in LaTeX inside \\( ... \\), and chemical formulas as \\( \\ce{H2O} \\); never use ^ or sqrt() as plain text."
                 val out = askOffline("You write accurate exam questions for students. Follow the format exactly.", user, 320, (settings.getDouble("temperature") + 0.25).coerceAtMost(0.9).toFloat())
                 val q = parseLineQuestion(out, qtype) ?: continue
                 if (seen.any { it.equals(q.getString("question"), true) }) continue
@@ -190,7 +190,7 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
             else "Each question has exactly 4 options and \"answer\" is the exact text of the correct option."
             val kind = if (qtype == "tf") "True/False" else "multiple-choice"
             val system = "You are a careful exam-question writer for Ethiopian students. Reply with ONE valid JSON object and nothing else."
-            val user = "Write $count $kind quiz questions about: \"$topic\".\nWrite the questions in $lang. $rule\n" +
+            val user = "Write $count $kind quiz questions about: \"$topic\".\nWrite the questions in $lang. $rule Write any formula or equation in LaTeX inside \\( ... \\), and chemical formulas as \\( \\ce{H2O} \\); never use ^ or sqrt() as plain text. Because the answer is JSON, write every backslash twice.\n" +
                 "Output JSON only, in this format:\n{\"questions\":[{\"question\":\"...\",\"options\":[\"...\",\"...\"],\"answer\":\"...\",\"explanation\":\"one short sentence\"}]}"
             val tokens = minOf(8192, 350 * count + 400)
             var qs = JSONArray()
@@ -322,7 +322,7 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
         val key = requireKey()
         if (key == "offline") return runJob { j ->
             val words = if (length == "medium") 180 else 110
-            val system = "You write clear, accurate, concise study notes for students. Plain text only: no markdown headings, no tables."
+            val system = "You write clear, accurate, concise study notes for students. Plain text only: no markdown headings, no tables. Write any formula or equation in LaTeX inside \\( ... \\), and chemical formulas as \\( \\ce{H2O} \\); never use ^ or sqrt() as plain text."
             val user = "Write short study notes about: \"$topic\".\nLanguage: English. About $words words.\nFormat: first line is a short title. Then 5 to 8 bullet lines, each starting with '- '. Finish with one line starting with 'Key idea: '."
             val text = cleanNote(withOffline(j) { askOffline(system, user, if (length == "medium") 700 else 450, 0.4f) })
             if (text.isEmpty()) throw ApiError(500, "ai_empty")
@@ -331,7 +331,7 @@ class StudyService(ctx: Context, private val settings: SettingsStore, private va
         return runJob {
             val lang = if (hasEthiopic(topic)) "Amharic" else "English"
             val words = if (length == "medium") 180 else 110
-            val system = "You write clear, accurate, concise study notes for Ethiopian students. Plain text only: no markdown headings, no tables."
+            val system = "You write clear, accurate, concise study notes for Ethiopian students. Plain text only: no markdown headings, no tables. Write any formula or equation in LaTeX inside \\( ... \\), and chemical formulas as \\( \\ce{H2O} \\); never use ^ or sqrt() as plain text."
             val user = "Write short study notes about: \"$topic\".\nLanguage: $lang. About $words words.\n" +
                 "Format: first line is a short title. Then 5 to 8 bullet lines, each starting with '- '. Finish with one line starting with 'Key idea: '."
             val tokens = minOf(8192, (if (length == "medium") 1200 else 800) * (if (lang == "Amharic") 3 else 2))

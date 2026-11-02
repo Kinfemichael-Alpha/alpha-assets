@@ -41,7 +41,7 @@
         });
         out.append(h('div', { class: 'card stack' },
           h('div', { class: 'h-sec' }, A.mq(draft.topic.trim())),
-          h('div', { class: 'note-body' }, draft.text), save));
+          (() => { const nb = h('div', { class: 'note-body' }); A.md(nb, draft.text); return nb; })(), save));
         A.scheduleMarquees();
       }
 
@@ -113,7 +113,7 @@
         const n = await A.get('/api/notes/get', { id: params.id });
         A.clear(title).append(A.mq(n.topic));
         A.clear(content).append(h('div', { class: 'card stack' },
-          h('div', { class: 'muted small' }, n.date), h('div', { class: 'note-body' }, n.body)));
+          h('div', { class: 'muted small' }, n.date), (() => { const nb = h('div', { class: 'note-body' }); A.md(nb, n.body); return nb; })()));
         A.scheduleMarquees();
       } catch (e) { await A.info(e.message); A.back(); }
     }

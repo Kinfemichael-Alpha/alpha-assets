@@ -454,7 +454,7 @@
       const feedback = h('div', { class: 'stack' });
       const next = h('button', { class: 'btn block', type: 'button', disabled: true }, i === n - 1 ? t('quiz_finish') : t('quiz_next'));
       const opts = q.options.map((text, idx) => {
-        const b = h('button', { class: 'opt', type: 'button' }, h('span', { class: 'ltr' }, String.fromCharCode(65 + idx)), h('span', { class: 'grow' }, text));
+        const b = h('button', { class: 'opt', type: 'button' }, h('span', { class: 'ltr' }, String.fromCharCode(65 + idx)), (() => { const sp = h('span', { class: 'grow' }); A.md(sp, text); return sp; })());
         b.addEventListener('click', () => reveal(idx));
         return b;
       });
@@ -468,7 +468,7 @@
         });
         if (choice === q.answer_index) score += 1;
         if (choice === -1) feedback.append(h('div', { class: 'explain' }, t('quiz_time_up')));
-        if (q.explanation) feedback.append(h('div', { class: 'explain' }, q.explanation));
+        if (q.explanation) { const ex = h('div', { class: 'explain' }); A.md(ex, q.explanation); feedback.append(ex); }
         next.disabled = false; next.focus({ preventScroll: false });
       }
       next.addEventListener('click', () => { if (!answered) return A.toast(t('quiz_pick')); if (i === n - 1) finish(); else { i += 1; showQuestion(); } });
@@ -476,7 +476,7 @@
       A.clear(content).append(
         h('div', { class: 'row' }, h('div', { class: 'grow h-sec' }, t('quiz_progress', { i: i + 1, n })), tlabel),
         tbar,
-        h('div', { class: 'card' }, h('div', { class: 'q-text' }, q.question)),
+        h('div', { class: 'card' }, (() => { const qt = h('div', { class: 'q-text' }); A.md(qt, q.question); return qt; })()),
         h('div', null, ...opts),
         feedback, next);
 
