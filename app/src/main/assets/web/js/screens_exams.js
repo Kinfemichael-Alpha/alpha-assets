@@ -43,14 +43,46 @@
 
   A.screens.exams = function exams() {
     const body = h('div', { class: 'stack' });
-    let data = null, stats = null;
+    let data = null, stats = null, resumeState = null;
 
     async function load(refresh) {
       try {
         data = await A.get('/api/exams/index', refresh ? { refresh: 'true' } : null);
         stats = await A.get('/api/exams/stats').catch(() => null);
+        const pr = await A.get('/api/exams/progress').catch(() => null);
+        resumeState = pr && pr.has ? pr.state : null;
       } catch (e) { A.clear(body).append(h('div', { class: 'card warn' }, h('p', null, e.message))); return; }
       draw();
+    }
+
+    function resumeCard() {
+      const st = resumeState;
+      const cont = h('button', { class: 'btn', type: 'button' }, t('exams_resume'));
+      const del = h('button', { class: 'btn ghost', type: 'button' }, t('exams_discard'));
+      cont.addEventListener('click', async () => {
+        const ov = A.loading(t('exams_preparing'), t('exams_title'));
+        try {
+          const byId = {};
+          for (const eid of Array.from(new Set(st.order.map((x) => x[0])))) {
+            const ent = (data.exams || []).find((e) => e.id === eid);
+            const ex = await A.get('/api/exams/get', { id: eid, path: ent ? ent.path : '' });
+            itemsOf(ex, () => true).forEach((it) => { byId[eid + ':' + it.q.n] = it; });
+          }
+          const items = st.order.map((x) => byId[x[0] + ':' + x[1]]).filter(Boolean);
+          if (items.length !== st.order.length) throw new Error(t('exam_dl_failed'));
+          ov.close();
+          A.go('examrun', { session: { subject: st.subject, grade: st.grade, label: st.label, perQ: st.perQ, items }, resume: st });
+        } catch (e) { ov.fail(e.message || t('err_server')); }
+      });
+      del.addEventListener('click', async () => {
+        if (!(await A.confirm(t('exams_discard_confirm')))) return;
+        await A.post('/api/exams/progress/clear').catch(() => {});
+        resumeState = null; draw();
+      });
+      const answered = Object.keys(st.answers || {}).length;
+      return h('div', { class: 'card tint stack' }, h('div', { class: 'h-sec' }, t('exams_resume_title')),
+        h('p', { class: 'muted' }, t('exams_resume_line', { label: st.subject + ' · ' + st.label, a: answered, n: st.order.length })),
+        h('div', { class: 'row' }, cont, del));
     }
 
     function draw() {
@@ -59,6 +91,7 @@
       const list = data.exams || [];
       if (!list.length) { body.append(h('div', { class: 'card' }, h('p', { class: 'muted' }, t('exams_empty')))); return; }
       body.append(h('p', { class: 'muted' }, t('exams_intro')));
+      if (resumeState) body.append(resumeCard());
       if (stats && stats.weak && stats.weak.length) {
         const card = h('div', { class: 'card stack' }, h('div', { class: 'h-sec' }, t('exams_weak')));
         stats.weak.forEach((w) => {
@@ -206,33 +239,45 @@
 
   A.screens.examrun = function examrun(p) {
     const s = p.session, n = s.items.length;
-    const answers = {};
-    let i = 0, finished = false;
+    const r = p.resume || {};
+    const answers = Object.assign({}, r.answers), flags = Object.assign({}, r.flags);
+    let i = Math.min(r.i || 0, n - 1), finished = false, saveTimer = null;
     const total = Math.max(60, Math.round(n * s.perQ * 60));
-    const endAt = Date.now() + total * 1000;
-    const timerEl = h('span', { class: 'pill' }, fmtTime(total));
+    const endAt = Date.now() + (r.left > 0 ? r.left : total) * 1000;
+    const left = () => Math.max(0, Math.round((endAt - Date.now()) / 1000));
+    const timerEl = h('span', { class: 'pill' }, fmtTime(left()));
     const area = h('div', { class: 'stack' });
     const nav = h('div', { class: 'exam-nav' });
     let tick = null;
+
+    const state = () => ({ subject: s.subject, grade: s.grade, label: s.label, perQ: s.perQ, order: s.items.map((it) => [it.eid, it.q.n]), answers, flags, i, left: left() });
+    const saveNow = () => { clearTimeout(saveTimer); return A.post('/api/exams/progress/save', state()).catch(() => {}); };
+    const saveSoon = () => { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); };
 
     function finish(auto) {
       if (finished) return;
       finished = true;
       clearInterval(tick);
-      const secs = Math.min(total, Math.round((Date.now() - (endAt - total * 1000)) / 1000));
-      A.go('examresult', { session: s, answers, secs }, { replace: true });
+      clearTimeout(saveTimer);
+      A.post('/api/exams/progress/clear').catch(() => {});
+      A.go('examresult', { session: s, answers, flags, secs: Math.max(1, total - left()) }, { replace: true });
       if (auto) A.toast(t('exam_time_up'), 5000);
     }
     async function ask() {
-      const left = n - Object.keys(answers).length;
-      if (left > 0 && !(await A.confirm(t('exam_unanswered', { n: left })))) return;
+      const un = n - Object.keys(answers).length, fl = Object.keys(flags).filter((k) => flags[k]).length;
+      if (un > 0 || fl > 0) {
+        const msg = [un > 0 ? t('exam_unanswered', { n: un }) : '', fl > 0 ? t('exam_flagged_left', { n: fl }) : ''].filter(Boolean).join(' ');
+        if (!(await A.confirm(msg))) return;
+      }
       finish(false);
     }
 
     function drawQ() {
       const it = s.items[i], q = it.q;
       A.clear(area);
-      area.append(h('div', { class: 'row' }, h('b', null, t('exam_q_of', { n: i + 1, total: n })), h('span', { class: 'grow' }),
+      const flag = h('button', { class: 'bar-btn flagbtn' + (flags[i] ? ' on' : ''), type: 'button', 'aria-label': flags[i] ? t('exam_unflag') : t('exam_flag'), 'aria-pressed': String(!!flags[i]) }, A.icon('flag'));
+      flag.addEventListener('click', () => { flags[i] = !flags[i]; saveSoon(); drawQ(); });
+      area.append(h('div', { class: 'row' }, h('b', null, t('exam_q_of', { n: i + 1, total: n })), flag, h('span', { class: 'grow' }),
         h('span', { class: 'muted small' }, t('exam_answered', { a: Object.keys(answers).length, t: n }))));
       if (it.pass) area.append(h('details', { class: 'card passage', open: 'open' }, h('summary', null, t('exam_passage')), md('div', 'pass-body', it.pass)));
       area.append(md('div', 'q-text', q.text));
@@ -240,14 +285,14 @@
       const box = h('div', null);
       letters(q).forEach((L) => {
         const b = h('button', { class: 'opt' + (answers[i] === L ? ' picked' : ''), type: 'button' }, h('span', { class: 'ltr' }, L), md('span', 'grow', q.options[L]));
-        b.addEventListener('click', () => { answers[i] = L; drawQ(); });
+        b.addEventListener('click', () => { answers[i] = L; saveSoon(); drawQ(); });
         box.append(b);
       });
       area.append(box);
-      const prev = h('button', { class: 'btn ghost', type: 'button', disabled: i === 0, onclick: () => { i--; drawQ(); } }, t('exam_prev'));
+      const prev = h('button', { class: 'btn ghost', type: 'button', disabled: i === 0, onclick: () => { i--; saveSoon(); drawQ(); } }, t('exam_prev'));
       const grid = h('button', { class: 'btn ghost', type: 'button', onclick: openGrid }, t('exam_list'));
       const last = i === n - 1;
-      const next = h('button', { class: 'btn', type: 'button', onclick: () => { if (last) ask(); else { i++; drawQ(); } } }, last ? t('exam_finish') : t('exam_next'));
+      const next = h('button', { class: 'btn', type: 'button', onclick: () => { if (last) ask(); else { i++; saveSoon(); drawQ(); } } }, last ? t('exam_finish') : t('exam_next'));
       A.clear(nav).append(prev, grid, next);
       area.parentNode && (area.parentNode.scrollTop = 0);
       A.scheduleMarquees();
@@ -256,8 +301,8 @@
     function openGrid() {
       const g = h('div', { class: 'qgrid' });
       s.items.forEach((_, k) => g.append(h('button', {
-        class: 'qcell' + (answers[k] ? ' done' : '') + (k === i ? ' cur' : ''), type: 'button',
-        onclick: () => { i = k; m.close(); drawQ(); },
+        class: 'qcell' + (answers[k] ? ' done' : '') + (flags[k] ? ' flagged' : '') + (k === i ? ' cur' : ''), type: 'button',
+        onclick: () => { i = k; saveSoon(); m.close(); drawQ(); },
       }, String(k + 1))));
       const m = A.modal({
         title: t('exam_list'), body: g, dismiss: true,
@@ -266,23 +311,33 @@
     }
 
     tick = setInterval(() => {
-      const left = Math.round((endAt - Date.now()) / 1000);
-      timerEl.textContent = fmtTime(left);
-      timerEl.classList.toggle('off', left <= 60);
-      if (left <= 0) finish(true);
+      const l = left();
+      timerEl.textContent = fmtTime(l);
+      timerEl.classList.toggle('off', l <= 60);
+      if (l <= 0) finish(true);
     }, 1000);
 
     const el = A.page(A.bar({ title: s.subject, right: [timerEl], pts: false }), h('div', { class: 'scroll' }, area), nav);
     return {
       el,
-      canLeave: () => (finished ? true : A.confirm(t('exam_leave'))),
+      canLeave: () => (finished ? Promise.resolve(true) : new Promise((resolve) => {
+        A.modal({
+          title: t('exam_leave_title'), body: t('exam_leave'),
+          actions: [
+            { label: t('exam_exit_nosave'), kind: 'ghost', onClick: async () => { finished = true; clearTimeout(saveTimer); await A.post('/api/exams/progress/clear').catch(() => {}); resolve(true); } },
+            { label: t('exam_save_exit'), kind: 'ghost', onClick: async () => { finished = true; await saveNow(); resolve(true); } },
+            { label: t('exam_keep'), kind: 'primary', onClick: () => resolve(false) },
+          ],
+        });
+      })),
       onLeave() { clearInterval(tick); },
-      onShow() { drawQ(); },
+      onShow() { drawQ(); if (!r.answers) saveNow(); },
     };
   };
 
   A.screens.examresult = function examresult(p) {
     const { session: s, answers, secs } = p;
+    const flags = p.flags || {};
     const n = s.items.length;
     let right = 0;
     const topics = {}, wrong = [];
@@ -312,9 +367,11 @@
       tcard.append(h('div', null, h('div', { class: 'row' }, h('div', { class: 'grow' }, A.mq(k)), h('b', null, v[0] + '/' + v[1])), barOf(pp)));
     });
     body.append(tcard);
-    body.append(h('button', { class: 'btn block', type: 'button', onclick: () => A.go('examreview', { session: s, answers, only: false }, { replace: true }) }, t('exam_review_all')));
+    const nFlag = Object.keys(flags).filter((k) => flags[k]).length;
+    body.append(h('button', { class: 'btn block', type: 'button', onclick: () => A.go('examreview', { session: s, answers, flags, only: 'all' }, { replace: true }) }, t('exam_review_all')));
+    if (nFlag) body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('examreview', { session: s, answers, flags, only: 'flagged' }, { replace: true }) }, t('exam_review_flagged')));
     if (wrong.length) {
-      body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('examreview', { session: s, answers, only: true }, { replace: true }) }, t('exam_review_wrong')));
+      body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('examreview', { session: s, answers, flags, only: 'wrong' }, { replace: true }) }, t('exam_review_wrong')));
       body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('examrun', { session: Object.assign({}, s, { label: t('exam_retry_label'), items: arrange(wrong.map((k) => s.items[k]), 0) }) }, { replace: true }) }, t('exam_retry_wrong')));
     } else body.append(h('div', { class: 'card tint' }, h('p', null, t('exam_perfect'))));
     body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.back() }, t('exam_done')));
@@ -323,11 +380,13 @@
 
   A.screens.examreview = function examreview(p) {
     const { session: s, answers, only } = p;
+    const flags = p.flags || {};
     const body = h('div', { class: 'stack' });
     s.items.forEach((it, k) => {
       const q = it.q, mine = answers[k], ok = mine === q.answer;
-      if (only && ok) return;
-      const card = h('div', { class: 'card stack' }, h('div', { class: 'row' }, h('b', null, t('exam_q_short', { n: k + 1 })), h('span', { class: 'grow' }),
+      if (only === 'wrong' && ok) return;
+      if (only === 'flagged' && !flags[k]) return;
+      const card = h('div', { class: 'card stack' }, h('div', { class: 'row' }, h('b', null, t('exam_q_short', { n: k + 1 })), flags[k] ? h('span', { class: 'flagmark' }, A.icon('flag')) : null, h('span', { class: 'grow' }),
         h('span', { class: 'muted small' }, q.topic || '')));
       if (it.pass) card.append(h('details', { class: 'passage' }, h('summary', null, t('exam_passage')), md('div', 'pass-body', it.pass)));
       card.append(md('div', 'q-text', q.text));

@@ -124,5 +124,20 @@ class ExamService(ctx: Context) {
         return JSONObject().put("attempts", h.length()).put("recent", recent).put("weak", weak)
     }
 
+    private val progressFile = File(dir, "progress.json")
+
+    fun saveProgress(b: JSONObject): JSONObject {
+        if ((b.optJSONArray("order")?.length() ?: 0) < 1) throw ApiError(400, "err_bad_request")
+        write(progressFile, b.toString())
+        return JSONObject().put("ok", true)
+    }
+
+    fun progress(): JSONObject {
+        val st = try { if (progressFile.exists()) JSONObject(progressFile.readText(Charsets.UTF_8)) else null } catch (_: Exception) { progressFile.delete(); null }
+        return if (st == null) JSONObject().put("has", false) else JSONObject().put("has", true).put("state", st)
+    }
+
+    fun clearProgress(): JSONObject { progressFile.delete(); return JSONObject().put("ok", true) }
+
     fun reset(): JSONObject { historyFile.delete(); return JSONObject().put("ok", true) }
 }

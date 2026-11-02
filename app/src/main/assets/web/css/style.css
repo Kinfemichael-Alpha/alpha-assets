@@ -605,3 +605,10 @@ select.inp { appearance: auto; }
 .qcell.cur { outline: 3px solid var(--primary); }
 .note-body.md { white-space: normal; }
 .opt .md, .explain.md { white-space: normal; }
+
+.flagbtn { min-width: 36px; min-height: 36px; background: none; border: 0; color: var(--muted); }
+.flagbtn.on { color: var(--primary); }
+.flagbtn.on svg { fill: currentColor; }
+.flagmark { color: var(--primary); display: inline-flex; }
+.flagmark svg { width: 18px; height: 18px; fill: currentColor; }
+.qcell.flagged { border-color: var(--primary); box-shadow: inset 0 0 0 2px var(--primary); }
