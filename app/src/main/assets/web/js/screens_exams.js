@@ -37,17 +37,28 @@
     return out;
   }
 
+  function normalize(exam) {
+    exam.questions = (exam.questions || []).map((q, i) => {
+      let o = q.options;
+      if (Array.isArray(o)) { const m = {}; o.forEach((v, k) => { m[String.fromCharCode(65 + k)] = v; }); o = m; }
+      return Object.assign({}, q, { n: q.n || i + 1, options: o || {}, text: q.text || q.question || '', answer: q.answer ? String(q.answer).trim().toUpperCase().slice(0, 1) : q.answer });
+    });
+    exam.id = exam.id || '';
+    return exam;
+  }
+
   function start(session) {
     A.go('examrun', { session });
   }
 
-  A.screens.exams = function exams() {
+  A.screens.exams = function exams(p0) {
+    const kind = (p0 && p0.kind) || 'past';
     const body = h('div', { class: 'stack' });
     let data = null, stats = null, resumeState = null;
 
     async function load(refresh) {
       try {
-        data = await A.get('/api/exams/index', refresh ? { refresh: 'true' } : null);
+        data = await A.get('/api/exams/index', refresh ? { kind, refresh: 'true' } : { kind });
         stats = await A.get('/api/exams/stats').catch(() => null);
         const pr = await A.get('/api/exams/progress').catch(() => null);
         resumeState = pr && pr.has ? pr.state : null;
@@ -63,15 +74,17 @@
         const ov = A.loading(t('exams_preparing'), t('exams_title'));
         try {
           const byId = {};
+          const sk = st.kind || 'past';
+          const idx = sk === kind ? data : await A.get('/api/exams/index', { kind: sk });
           for (const eid of Array.from(new Set(st.order.map((x) => x[0])))) {
-            const ent = (data.exams || []).find((e) => e.id === eid);
-            const ex = await A.get('/api/exams/get', { id: eid, path: ent ? ent.path : '' });
+            const ent = (idx.exams || []).find((e) => e.id === eid);
+            const ex = normalize(await A.get('/api/exams/get', { kind: sk, id: eid, path: ent ? ent.path : '' }));
             itemsOf(ex, () => true).forEach((it) => { byId[eid + ':' + it.q.n] = it; });
           }
           const items = st.order.map((x) => byId[x[0] + ':' + x[1]]).filter(Boolean);
           if (items.length !== st.order.length) throw new Error(t('exam_dl_failed'));
           ov.close();
-          A.go('examrun', { session: { subject: st.subject, grade: st.grade, label: st.label, perQ: st.perQ, items }, resume: st });
+          A.go('examrun', { session: { kind: sk, subject: st.subject, grade: st.grade, label: st.label, perQ: st.perQ, items }, resume: st });
         } catch (e) { ov.fail(e.message || t('err_server')); }
       });
       del.addEventListener('click', async () => {
@@ -89,8 +102,8 @@
       A.clear(body);
       if (data.offline) body.append(h('div', { class: 'card tint' }, h('p', { class: 'muted' }, t('exams_offline'))));
       const list = data.exams || [];
-      if (!list.length) { body.append(h('div', { class: 'card' }, h('p', { class: 'muted' }, t('exams_empty')))); return; }
-      body.append(h('p', { class: 'muted' }, t('exams_intro')));
+      if (!list.length) { body.append(h('div', { class: 'card' }, h('p', { class: 'muted' }, t(kind === 'generated' ? 'gen_empty' : 'exams_empty')))); return; }
+      body.append(h('p', { class: 'muted' }, t(kind === 'generated' ? 'gen_q_intro' : 'exams_intro')));
       if (resumeState) body.append(resumeCard());
       if (stats && stats.weak && stats.weak.length) {
         const card = h('div', { class: 'card stack' }, h('div', { class: 'h-sec' }, t('exams_weak')));
@@ -99,19 +112,19 @@
           const ex = list.find((e) => e.subject === w.subject);
           const row = h('button', { class: 'plain-row', type: 'button' },
             h('div', { class: 'row' }, h('div', { class: 'grow' }, A.mq(w.subject + ' · ' + w.topic)), h('b', null, pct + '%')), barOf(pct));
-          if (ex) row.addEventListener('click', () => A.go('examsetup', { grade: ex.grade, subject: ex.subject, topic: w.topic }));
+          if (ex) row.addEventListener('click', () => A.go('examsetup', { kind, grade: ex.grade, subject: ex.subject, topic: w.topic }));
           card.append(row);
         });
         body.append(card);
       }
       const groups = {};
-      list.forEach((e) => { (groups[e.grade + '|' + e.subject] = groups[e.grade + '|' + e.subject] || []).push(e); });
+      list.forEach((e) => { const gk = (e.grade || '') + '|' + e.subject; (groups[gk] = groups[gk] || []).push(e); });
       Object.keys(groups).sort().forEach((k) => {
         const g = groups[k], first = g[0];
         const q = g.reduce((s, e) => s + (e.count || 0), 0);
-        body.append(h('button', { class: 'card subj', type: 'button', onclick: () => A.go('examsetup', { grade: first.grade, subject: first.subject }) },
+        body.append(h('button', { class: 'card subj', type: 'button', onclick: () => A.go('examsetup', { kind, grade: first.grade, subject: first.subject }) },
           h('div', { class: 'grow' },
-            h('div', { class: 'h-sec' }, t('exams_grade', { g: first.grade }) + ' · ' + first.subject),
+            h('div', { class: 'h-sec' }, (first.grade ? t('exams_grade', { g: first.grade }) + ' · ' : '') + (first.subject || first.title)),
             h('div', { class: 'muted small' }, t('exams_count_line', { n: g.length, q }))),
           A.icon('chev')));
       });
@@ -127,16 +140,17 @@
     }
 
     const refresh = h('button', { class: 'bar-btn txt', type: 'button', onclick: () => load(true) }, t('exams_refresh'));
-    return { el: A.page(A.bar({ title: t('exams_title'), right: [refresh] }), h('div', { class: 'scroll ruled' }, body)), onShow() { load(false); } };
+    return { el: A.page(A.bar({ title: t(kind === 'generated' ? 'gen_questions' : 'exams_title'), right: [refresh] }), h('div', { class: 'scroll ruled' }, body)), onShow() { load(false); } };
   };
 
   A.screens.examsetup = function examsetup(p) {
+    const kind = p.kind || 'past';
     const st = Object.assign({ src: p.topic ? 'topic' : 'year', eid: '', topics: p.topic ? [p.topic] : [], count: null, minutes: defaultMinutes(p.subject) }, p.v || {});
     const body = h('div', { class: 'stack' });
     let list = [];
 
-    const mine = () => list.filter((e) => e.grade === p.grade && e.subject === p.subject).sort((a, b) => (b.year_ec || 0) - (a.year_ec || 0) || String(a.round).localeCompare(String(b.round)));
-    const examName = (e) => t('exams_year_round', { y: e.year_ec, r: e.round ? t('exams_round', { r: e.round }) : '' }).trim();
+    const mine = () => list.filter((e) => (e.grade || null) === (p.grade || null) && e.subject === p.subject).sort((a, b) => (b.year_ec || 0) - (a.year_ec || 0) || String(a.round).localeCompare(String(b.round)));
+    const examName = (e) => kind === 'generated' ? (e.title || e.id) : t('exams_year_round', { y: e.year_ec, r: e.round ? t('exams_round', { r: e.round }) : '' }).trim();
 
     function topicCounts() {
       const m = {};
@@ -144,7 +158,7 @@
       return m;
     }
     function available() {
-      if (st.src === 'year') { const e = mine().find((x) => x.id === st.eid); return e ? e.count : 0; }
+      if (st.src === 'year') { const e = mine().find((x) => x.id === st.eid); return e ? (e.count || Object.values(e.topics || {}).reduce((a, b) => a + b, 0)) : 0; }
       if (st.src === 'topic') { const m = topicCounts(); return st.topics.reduce((s, k) => s + (m[k] || 0), 0); }
       return mine().reduce((s, e) => s + (e.count || 0), 0);
     }
@@ -155,7 +169,7 @@
       if (!ex.length) { body.append(h('div', { class: 'card' }, h('p', { class: 'muted' }, t('exams_empty')))); return; }
       if (!st.eid || !ex.some((e) => e.id === st.eid)) st.eid = ex[0].id;
       const seg = h('div', { class: 'seg' });
-      [['year', t('exams_src_year')], ['topic', t('exams_src_topic')], ['mixed', t('exams_src_mixed')]].forEach(([v, label]) => {
+      [['year', t(kind === 'generated' ? 'gen_src_set' : 'exams_src_year')], ['topic', t('exams_src_topic')], ['mixed', t('exams_src_mixed')]].forEach(([v, label]) => {
         const r = h('input', { type: 'radio', name: 'src', value: v, checked: st.src === v });
         r.addEventListener('change', () => { st.src = v; st.count = null; draw(); });
         seg.append(h('label', null, r, h('span', null, label)));
@@ -214,7 +228,7 @@
       try {
         for (let i = 0; i < chosen.length; i++) {
           ov.set(t('exams_preparing') + ' ' + (i + 1) + '/' + chosen.length);
-          const e = await A.get('/api/exams/get', { id: chosen[i].id, path: chosen[i].path });
+          const e = normalize(await A.get('/api/exams/get', { kind, id: chosen[i].id, path: chosen[i].path }));
           items = items.concat(itemsOf(e, (q) => st.src !== 'topic' || st.topics.includes(q.topic || 'Other')));
         }
       } catch (e) { return ov.fail(e.message || t('err_server')); }
@@ -224,14 +238,14 @@
       const n = st.count ? Math.min(st.count, items.length) : items.length;
       const picked = arrange(items, st.count ? n : 0);
       const label = st.src === 'year' ? examName(chosen[0]) : st.src === 'topic' ? st.topics.join(', ') : t('exams_src_mixed');
-      start({ subject: p.subject, grade: p.grade, label, items: picked, perQ: st.minutes });
+      start({ kind, subject: p.subject, grade: p.grade, label, items: picked, perQ: st.minutes });
     }
 
     return {
-      el: A.page(A.bar({ title: t('exams_grade', { g: p.grade }) + ' · ' + p.subject }), h('div', { class: 'scroll ruled' }, body)),
+      el: A.page(A.bar({ title: (p.grade ? t('exams_grade', { g: p.grade }) + ' · ' : '') + p.subject }), h('div', { class: 'scroll ruled' }, body)),
       getParams: () => Object.assign({}, p, { v: st }),
       async onShow() {
-        try { list = (await A.get('/api/exams/index')).exams || []; } catch (e) { return A.info(e.message); }
+        try { list = (await A.get('/api/exams/index', { kind })).exams || []; } catch (e) { return A.info(e.message); }
         draw();
       },
     };
@@ -250,7 +264,7 @@
     const nav = h('div', { class: 'exam-nav' });
     let tick = null;
 
-    const state = () => ({ subject: s.subject, grade: s.grade, label: s.label, perQ: s.perQ, order: s.items.map((it) => [it.eid, it.q.n]), answers, flags, i, left: left() });
+    const state = () => ({ kind: s.kind || 'past', subject: s.subject, grade: s.grade, label: s.label, perQ: s.perQ, order: s.items.map((it) => [it.eid, it.q.n]), answers, flags, i, left: left() });
     const saveNow = () => { clearTimeout(saveTimer); return A.post('/api/exams/progress/save', state()).catch(() => {}); };
     const saveSoon = () => { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); };
 

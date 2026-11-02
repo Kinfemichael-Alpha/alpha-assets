@@ -10,20 +10,33 @@ import java.util.Date
 import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
+import org.json.JSONTokener
 
 class ExamService(ctx: Context) {
     private val base = "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/"
     private val dir = File(ctx.filesDir, "exams").apply { mkdirs() }
-    private val indexFile = File(dir, "index.json")
     private val historyFile = File(dir, "history.json")
     private val dayFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
+    private val indexNames = mapOf(
+        "past" to listOf("exams_index.json"),
+        "generated" to listOf("generates_exams_url.json", "generated_exams_url.json"),
+        "notes" to listOf("generated_notes_url.json", "generates_notes_url.json"),
+    )
+    private val listKeys = listOf("exams", "notes", "files", "items", "sets", "data")
+
+    private fun kindOf(k: String): String = if (k == "generated" || k == "notes") k else "past"
     private fun enc(path: String) = path.split('/').joinToString("/") { URLEncoder.encode(it, "UTF-8").replace("+", "%20") }
 
     private fun fetch(path: String, maxBytes: Int): String {
-        val c = URL(base + enc(path)).openConnection() as HttpURLConnection
+        val full = if (path.startsWith("https://")) {
+            val host = try { URL(path).host } catch (_: Exception) { "" }
+            if (host != "huggingface.co" && !host.endsWith(".huggingface.co")) throw ApiError(400, "err_bad_request")
+            path
+        } else base + enc(path)
+        val c = URL(full).openConnection() as HttpURLConnection
         try {
-            c.connectTimeout = 15000; c.readTimeout = 60000
+            c.connectTimeout = 15000; c.readTimeout = 90000
             c.setRequestProperty("User-Agent", "AlphaAI/0.1")
             val code = c.responseCode
             if (code == 404) throw ApiError(404, "exam_not_found")
@@ -39,48 +52,89 @@ class ExamService(ctx: Context) {
         } finally { c.disconnect() }
     }
 
-    private fun safe(id: String) = id.replace(Regex("[^A-Za-z0-9_.-]"), "_")
-    private fun examFile(id: String) = File(dir, "e_" + safe(id) + ".json")
+    private fun safe(id: String) = id.replace(Regex("[^A-Za-z0-9_.-]"), "_").take(120)
+    private fun indexFile(kind: String) = File(dir, if (kind == "past") "index.json" else "index_$kind.json")
+    private fun examFile(kind: String, id: String) = File(dir, (if (kind == "past") "e_" else if (kind == "generated") "g_" else "n_") + safe(id) + ".json")
 
     private fun write(f: File, text: String) {
         val tmp = File(f.path + ".tmp"); tmp.writeText(text, Charsets.UTF_8); tmp.renameTo(f)
     }
 
-    fun index(refresh: Boolean): JSONObject {
+    private fun normalizeIndex(text: String): JSONArray {
+        val root: Any = try { JSONTokener(text).nextValue() } catch (_: Exception) { throw ApiError(502, "exam_dl_failed") }
+        var arr: JSONArray? = root as? JSONArray
+        if (arr == null && root is JSONObject) for (k in listKeys) { arr = root.optJSONArray(k); if (arr != null) break }
+        if (arr == null) throw ApiError(502, "exam_dl_failed")
+        val out = JSONArray()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i)
+            val e = if (o != null) o else JSONObject().put("url", arr.optString(i))
+            val loc = listOf("url", "download_url", "link", "path", "file").map { e.optString(it) }.firstOrNull { it.isNotEmpty() } ?: continue
+            val name = loc.substringBefore('?').substringAfterLast('/').removeSuffix(".json")
+            val id = e.optString("id").ifEmpty { name }
+            val n = JSONObject()
+            n.put("id", id).put("path", loc)
+            n.put("title", e.optString("title").ifEmpty { e.optString("name").ifEmpty { name.replace('_', ' ').replace('-', ' ') } })
+            n.put("grade", e.opt("grade") ?: JSONObject.NULL).put("subject", e.optString("subject").ifEmpty { "" })
+            n.put("count", e.optInt("count", e.optInt("questions", 0)))
+            n.put("year_ec", e.opt("year_ec") ?: JSONObject.NULL).put("round", e.opt("round") ?: JSONObject.NULL)
+            n.put("topics", e.optJSONObject("topics") ?: JSONObject())
+            out.put(n)
+        }
+        return out
+    }
+
+    fun index(kindIn: String, refresh: Boolean): JSONObject {
+        val kind = kindOf(kindIn)
+        val f = indexFile(kind)
         var offline = false
-        var text: String? = null
-        if (refresh || !indexFile.exists()) {
-            try {
-                text = fetch("exams_index.json", 4 * 1024 * 1024)
-                JSONObject(text)
-                write(indexFile, text)
-            } catch (e: ApiError) {
-                if (!indexFile.exists()) throw e
-                offline = true
-            } catch (e: Exception) {
-                if (!indexFile.exists()) throw ApiError(502, "exam_dl_failed")
+        if (refresh || !f.exists()) {
+            var lastErr: ApiError? = null
+            var ok = false
+            for (name in indexNames.getValue(kind)) {
+                try {
+                    val text = fetch(name, 4 * 1024 * 1024)
+                    normalizeIndex(text)
+                    write(f, text)
+                    ok = true
+                    break
+                } catch (e: ApiError) { lastErr = e; if (e.status != 404) break
+                } catch (e: Exception) { lastErr = ApiError(502, "exam_dl_failed"); break }
+            }
+            if (!ok) {
+                if (!f.exists()) { if (lastErr?.status == 404) return JSONObject().put("exams", JSONArray()).put("offline", false); throw lastErr ?: ApiError(502, "exam_dl_failed") }
                 offline = true
             }
         }
-        val idx = try { JSONObject(indexFile.readText(Charsets.UTF_8)) } catch (_: Exception) { indexFile.delete(); throw ApiError(502, "exam_dl_failed") }
-        val list = idx.optJSONArray("exams") ?: JSONArray()
-        for (i in 0 until list.length()) list.getJSONObject(i).put("downloaded", examFile(list.getJSONObject(i).optString("id")).exists())
+        val list = try { normalizeIndex(f.readText(Charsets.UTF_8)) } catch (_: Exception) { f.delete(); throw ApiError(502, "exam_dl_failed") }
+        for (i in 0 until list.length()) list.getJSONObject(i).put("downloaded", examFile(kind, list.getJSONObject(i).optString("id")).exists())
         return JSONObject().put("exams", list).put("offline", offline)
     }
 
-    fun get(id: String, path: String): JSONObject {
+    fun get(kindIn: String, id: String, path: String): JSONObject {
+        val kind = kindOf(kindIn)
         if (id.isEmpty()) throw ApiError(400, "err_bad_request")
-        val f = examFile(id)
-        if (f.exists()) try { return JSONObject(f.readText(Charsets.UTF_8)) } catch (_: Exception) { f.delete() }
+        val f = examFile(kind, id)
+        if (f.exists()) try { return wrap(kind, JSONTokener(f.readText(Charsets.UTF_8)).nextValue()) } catch (_: Exception) { f.delete() }
         if (path.isEmpty() || path.contains("..")) throw ApiError(400, "err_bad_request")
-        val text = fetch(path, 8 * 1024 * 1024)
-        val j = try { JSONObject(text) } catch (_: Exception) { throw ApiError(502, "exam_dl_failed") }
-        if (j.optJSONArray("questions") == null) throw ApiError(502, "exam_dl_failed")
+        val text = fetch(path, 25 * 1024 * 1024)
+        val j = try { wrap(kind, JSONTokener(text).nextValue()) } catch (e: ApiError) { throw e } catch (_: Exception) { throw ApiError(502, "exam_dl_failed") }
         write(f, text)
         return j
     }
 
-    fun remove(id: String): JSONObject { examFile(id).delete(); return JSONObject().put("ok", true) }
+    private fun wrap(kind: String, v: Any?): JSONObject {
+        if (kind == "notes") {
+            if (v is JSONArray) return JSONObject().put("notes", v)
+            if (v is JSONObject) return v
+            throw ApiError(502, "exam_dl_failed")
+        }
+        val j = if (v is JSONArray) JSONObject().put("questions", v) else v as? JSONObject ?: throw ApiError(502, "exam_dl_failed")
+        if (j.optJSONArray("questions") == null) throw ApiError(502, "exam_dl_failed")
+        return j
+    }
+
+    fun remove(kindIn: String, id: String): JSONObject { examFile(kindOf(kindIn), id).delete(); return JSONObject().put("ok", true) }
 
     private fun history(): JSONArray = try { if (historyFile.exists()) JSONArray(historyFile.readText(Charsets.UTF_8)) else JSONArray() } catch (_: Exception) { JSONArray() }
 

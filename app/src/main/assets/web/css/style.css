@@ -612,3 +612,6 @@ select.inp { appearance: auto; }
 .flagmark { color: var(--primary); display: inline-flex; }
 .flagmark svg { width: 18px; height: 18px; fill: currentColor; }
 .qcell.flagged { border-color: var(--primary); box-shadow: inset 0 0 0 2px var(--primary); }
+
+.topicbox summary { display: flex; align-items: center; gap: 10px; font-weight: 800; cursor: pointer; }
+.topicbox[open] summary { margin-bottom: 8px; }
