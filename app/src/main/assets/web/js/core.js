@@ -2,7 +2,7 @@
    ሁሉም ጽሁፍ በ textContent ነው የሚገባው (innerHTML በቋሚ SVG ብቻ) - የ AI ውጤት ውስጥ ያለ ተንኮል ስክሪፕት መሥራት አይችልም። */
 'use strict';
 (function () {
-  const A = (window.A = { S: { state: null, strings: {}, lang: 'AM' }, screens: {} });
+  const A = (window.A = { S: { state: null, strings: {}, lang: 'EN' }, screens: {} });
 
   /* ---------------------------------------------------------------- i18n */
   A.t = function t(key, params) {

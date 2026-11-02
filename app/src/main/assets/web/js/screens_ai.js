@@ -400,22 +400,15 @@
       A.scheduleMarquees();
     }
 
-    function drawExams() {
-      if (lib) lib.stop();
-      lib = A.libraryView('exams', [t('books_downloaded_tab'), t('books_download_tab')]);
-      A.clear(body).append(h('div', { class: 'h-sec' }, t('past_exams')), lib.el);
-      lib.start();
-    }
-
     function draw() {
       if (lib) { lib.stop(); lib = null; }
-      if (tab === 'new') drawNew(); else if (tab === 'saved') drawSaved(); else drawExams();
+      if (tab === 'new') drawNew(); else drawSaved();
     }
     async function loadInfo() {
       try { info = await A.get('/api/quiz/list'); } catch (e) { A.info(e.message); }
     }
 
-    const tabs = A.tabs([['new', t('quiz_tab_new')], ['saved', t('quiz_tab_saved')], ['exams', t('quiz_tab_exams')]], tab, (id) => { tab = id; draw(); });
+    const tabs = A.tabs([['new', t('quiz_tab_new')], ['saved', t('quiz_tab_saved')]], tab, (id) => { tab = id; draw(); });
     const el = A.page(A.bar({ title: t('quiz_title') }), h('div', { class: 'scroll ruled stack' }, tabs, body));
     return {
       el,

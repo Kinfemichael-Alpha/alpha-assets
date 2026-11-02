@@ -17,8 +17,9 @@ class SettingsStore(ctx: Context) {
     private fun defaults(): JSONObject = JSONObject()
         .put("theme", "Blue")            // የተስማማ ነባሪ: ሰማያዊ / agreed default: blue
         .put("online_mode", true)
-        .put("appearance", "device")   // light | dark | device
-        .put("language", "AM")
+        .put("appearance", "dark")   // light | dark | device
+        .put("language", "EN")
+        .put("defaults_v2", false)
         .put("nickname", "")
         .put("onboarded", false)
         .put("gemini_key", "")           // የራስ Gemini ቁልፍ (በስልኩ ላይ ብቻ) / own Gemini key, stored locally only
@@ -43,13 +44,14 @@ class SettingsStore(ctx: Context) {
                 for (k in data.keys().asSequence().toList()) if (stored.has(k)) data.put(k, stored.get(k))
             }
         } catch (_: Exception) { /* የተበላሸ ፋይል -> ነባሪ */ }
+        if (!data.optBoolean("defaults_v2")) { data.put("language", "EN"); data.put("appearance", "dark"); data.put("defaults_v2", true); sanitize(); save() }
         sanitize()
     }
 
     private fun sanitize() {
         if (data.opt("online_mode") !is Boolean) data.put("online_mode", true)
-        if (data.optString("appearance") !in listOf("light", "dark", "device")) data.put("appearance", "device")
-        if (data.optString("language") !in listOf("AM", "EN")) data.put("language", "AM")
+        if (data.optString("appearance") !in listOf("light", "dark", "device")) data.put("appearance", "dark")
+        if (data.optString("language") !in listOf("AM", "EN")) data.put("language", "EN")
         data.put("nickname", data.optString("nickname").trim().take(40))
         if (data.opt("onboarded") !is Boolean) data.put("onboarded", false)
         data.put("gemini_key", data.optString("gemini_key").filter { it.isLetterOrDigit() || it == '_' || it == '-' || it == '.' }.take(200))
@@ -87,7 +89,7 @@ class SettingsStore(ctx: Context) {
     @Synchronized
     fun reset() {
         val nick = data.optString("nickname"); val on = data.optBoolean("onboarded"); val old = data
-        data = defaults(); data.put("nickname", nick); data.put("onboarded", on)
+        data = defaults(); data.put("defaults_v2", true); data.put("nickname", nick); data.put("onboarded", on)
         for (k in listOf("gemini_key", "provider", "provider_cfg", "points", "skip_until", "turbo_until")) if (old.has(k)) data.put(k, old.get(k))
         save()
     }
