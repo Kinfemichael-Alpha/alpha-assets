@@ -134,6 +134,8 @@ class ExamService(ctx: Context) {
         return j
     }
 
+    fun isCached(kindIn: String, id: String): Boolean = id.isNotEmpty() && examFile(kindOf(kindIn), id).exists()
+
     fun remove(kindIn: String, id: String): JSONObject { examFile(kindOf(kindIn), id).delete(); return JSONObject().put("ok", true) }
 
     private fun history(): JSONArray = try { if (historyFile.exists()) JSONArray(historyFile.readText(Charsets.UTF_8)) else JSONArray() } catch (_: Exception) { JSONArray() }

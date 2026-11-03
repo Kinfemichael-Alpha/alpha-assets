@@ -194,7 +194,36 @@
       const mins = h('input', { class: 'inp', type: 'number', inputmode: 'decimal', min: '0.5', step: '0.5', 'aria-label': t('exams_minutes') });
       const info = h('p', { class: 'muted' });
       function wanted() { const v = parseInt(cnt.value, 10); return v > 0 ? Math.min(v, avail || v) : avail; }
+      function chosenEntries() {
+        if (st.src === 'year') return ex.filter((e) => e.id === st.eid);
+        if (st.src === 'topic') return ex.filter((e) => Object.keys(e.topics || {}).some((k) => st.topics.includes(k)));
+        return ex;
+      }
+      const action = h('div', { class: 'stack' });
+      async function download() {
+        const need = chosenEntries().filter((e) => !e.downloaded);
+        const ov = A.loading(t('exams_downloading'), t('exams_title'));
+        try {
+          for (let i = 0; i < need.length; i++) {
+            ov.set(t('exams_downloading') + ' ' + (i + 1) + '/' + need.length);
+            await A.get('/api/exams/get', { kind, id: need[i].id, path: need[i].path });
+            need[i].downloaded = true;
+          }
+          ov.close();
+          drawAction();
+        } catch (e) { ov.fail(e.message || t('err_server')); }
+      }
+      function drawAction() {
+        const need = chosenEntries().filter((e) => !e.downloaded);
+        A.clear(action);
+        if (need.length) {
+          action.append(h('p', { class: 'muted' }, t('exams_need_dl', { n: need.length })),
+            h('button', { class: 'btn block', type: 'button', onclick: download }, t('btn_download')),
+            h('button', { class: 'btn ghost block', type: 'button', disabled: true }, t('exams_start')));
+        } else action.append(h('button', { class: 'btn block', type: 'button', onclick: go }, t('exams_start')));
+      }
       function refreshInfo() {
+        drawAction();
         const a = available();
         info.textContent = t('exams_total_time', { n: wanted(), m: Math.round(wanted() * (parseFloat(mins.value) || 0)) }) + ' · ' + t('exams_available', { n: a });
       }
@@ -208,7 +237,7 @@
       card.append(
         h('label', { class: 'fld' }, h('span', null, t('exams_howmany')), cnt), chips,
         h('label', { class: 'fld' }, h('span', null, t('exams_minutes')), mins), info,
-        h('button', { class: 'btn block', type: 'button', onclick: go }, t('exams_start')));
+        action);
       body.append(card);
       refreshInfo();
       A.scheduleMarquees();

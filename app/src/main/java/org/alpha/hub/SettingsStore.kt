@@ -11,6 +11,7 @@ import java.io.File
 class SettingsStore(ctx: Context) {
     private val file = File(ctx.filesDir, "settings.json")
     private var data = JSONObject()
+    val fresh: Boolean = !file.exists()
 
     init { load() }
 

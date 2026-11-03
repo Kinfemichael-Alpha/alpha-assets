@@ -95,7 +95,7 @@ class ApiRouter(private val ctx: Context) {
         "GET /api/chat" -> chat.view()
         "POST /api/chat/send" -> { busyTr(); chat.send(b.optString("text")) }
         "GET /api/translator" -> translator.list()
-        "POST /api/translator/download" -> translator.download(b.optString("input"))
+        "POST /api/translator/download" -> translator.download(b.optString("input")).also { downloadAd() }
         "POST /api/translator/activate" -> { translator.activate(b.optString("name")); translator.list() }
         "POST /api/translator/deactivate" -> { translator.deactivate(); translator.list() }
         "POST /api/translator/delete" -> { translator.delete(b.optString("name")); translator.list() }
@@ -127,7 +127,7 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/notes/save" -> study.noteSave(b)
         "POST /api/notes/delete" -> study.noteDelete(b)
         "GET /api/exams/index" -> exams.index(b.optString("kind"), b.optBoolean("refresh"))
-        "GET /api/exams/get" -> exams.get(b.optString("kind"), b.optString("id"), b.optString("path"))
+        "GET /api/exams/get" -> { if (!exams.isCached(b.optString("kind"), b.optString("id"))) downloadAd(); exams.get(b.optString("kind"), b.optString("id"), b.optString("path")) }
         "POST /api/exams/remove" -> exams.remove(b.optString("kind"), b.optString("id"))
         "POST /api/exams/attempt" -> exams.attempt(b)
         "GET /api/exams/stats" -> exams.stats()
@@ -287,6 +287,7 @@ class ApiRouter(private val ctx: Context) {
     private fun modelDownload(b: JSONObject): JSONObject {
         val e = models.entry(b.optString("filename")) ?: throw ApiError(404, "err_not_found")
         if (!downloader.start(e.url, File(models.dir, e.filename), e.filename, models.cleanTitle(e.filename), "public")) throw ApiError(409, "dl_busy")
+        downloadAd()
         return JSONObject().put("ok", true)
     }
 
@@ -335,14 +336,30 @@ class ApiRouter(private val ctx: Context) {
         return JSONObject().put("source", if (ok) "ad" else "none").put("points", settings.getInt("points"))
     }
 
+    private var nextInter = 0L
+    private var lastAdAt = 0L
+    init {
+        val now = System.currentTimeMillis()
+        nextInter = now + if (settings.fresh) 180000L else 10000L
+        if (settings.fresh) settings.set("install_ts", now)
+    }
+
     private fun interstitialAd(): JSONObject {
         val now = System.currentTimeMillis()
         val bridge = ads
-        val allowed = bridge != null && bridge.isOnline() && now > settings.getLong("skip_until") && now - settings.getLong("last_inter") > 180000L
+        val allowed = bridge != null && bridge.isOnline() && now > settings.getLong("skip_until") && now >= nextInter
         if (!allowed) return JSONObject().put("shown", false)
-        settings.set("last_inter", now)
+        nextInter = now + 180000L; lastAdAt = now
         bridge!!.showInterstitial { }
         return JSONObject().put("shown", true)
+    }
+
+    private fun downloadAd() {
+        val now = System.currentTimeMillis()
+        val bridge = ads
+        if (bridge == null || !bridge.isOnline() || now <= settings.getLong("skip_until") || now - lastAdAt < 20000L) return
+        nextInter = now + 180000L; lastAdAt = now
+        bridge.showInterstitial { }
     }
 
     private fun adSpend(b: JSONObject): JSONObject {
@@ -453,6 +470,7 @@ class ApiRouter(private val ctx: Context) {
         // URL ከዝርዝሩ ብቻ ይወሰዳል፣ ከ UI አይቀበልም / URL comes only from the catalog, never from the UI
         val entry = catalog(kind).flatMap { it.entries }.firstOrNull { it.filename == fn } ?: throw ApiError(404, "err_not_found")
         if (!downloader.start(entry.url, File(libDir(kind), entry.filename), entry.filename, entry.title, kind)) throw ApiError(409, "dl_busy")
+        downloadAd()
         return JSONObject().put("ok", true)
     }
 
