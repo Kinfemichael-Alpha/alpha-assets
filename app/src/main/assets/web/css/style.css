@@ -617,3 +617,6 @@ select.inp { appearance: auto; }
 .topicbox[open] summary { margin-bottom: 8px; }
 
 .trbox { margin-top: 8px; padding-top: 8px; border-top: 1.5px dashed var(--line); }
+
+.composer .bar-btn.attach { background: var(--tint); color: var(--ink); border: 1.5px solid var(--line); }
+.composer .bar-btn.attach:active { background: var(--primary); color: var(--white); }
