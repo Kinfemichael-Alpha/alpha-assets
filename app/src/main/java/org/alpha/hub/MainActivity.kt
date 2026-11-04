@@ -96,6 +96,11 @@ class MainActivity : AppCompatActivity() {
         root.addView(web, android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         val bannerBox = android.widget.FrameLayout(this)
         root.addView(bannerBox, android.widget.LinearLayout.LayoutParams(android.widget.LinearLayout.LayoutParams.MATCH_PARENT, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT))
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
+            val b = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars() or androidx.core.view.WindowInsetsCompat.Type.ime())
+            v.setPadding(b.left, b.top, b.right, b.bottom)
+            androidx.core.view.WindowInsetsCompat.CONSUMED
+        }
         setContentView(root)
         router.ads = AdManager(this, bannerBox, router.settings)
         web.loadUrl("$origin/index.html")

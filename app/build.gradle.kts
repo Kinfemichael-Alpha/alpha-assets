@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "org.alpha.hub"
-    compileSdk = 34
+    compileSdk = 36
     ndkVersion = "26.3.11579264"
     externalNativeBuild {
         cmake {
@@ -17,9 +17,9 @@ android {
     defaultConfig {
         applicationId = "com.kinfemichael.apps.alphaai"   // የመተግበሪያ መለያ (በ Play ላይ ቋሚ ነው) / permanent app id
         minSdk = 24            // Android 7.0+ / አንድ APK ለሁሉም
-        targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        targetSdk = 36
+        versionCode = 2
+        versionName = "1.0.0"
         // 32-bit ስልኮችም APK እንዲጭኑ ሁለቱም ABI ይፈቀዳሉ (offline AI ለ arm64 ብቻ ይሆናል)
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         externalNativeBuild {
