@@ -146,6 +146,7 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/sync" -> study.runJob { syncNow() }
         "GET /api/contacts" -> contacts()
         "POST /api/contacts/open" -> contactOpen(b)
+        "POST /api/community/open" -> communityOpen(b)
         "POST /api/exit" -> { chat.stop(); engine.unload(); onExit?.invoke(); JSONObject().put("ok", true) }
         "POST /api/ads/rewarded" -> study.runJob { rewardedAd() }
         "POST /api/ads/interstitial" -> interstitialAd()
@@ -229,6 +230,16 @@ class ApiRouter(private val ctx: Context) {
             else -> Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("mailto:$value"))
         }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try { ctx.startActivity(i) } catch (e: Exception) { throw ApiError(500, "err_open_failed") }
+        return JSONObject().put("ok", true)
+    }
+
+    private fun communityOpen(b: JSONObject): JSONObject {
+        val url = when (b.optString("which")) {
+            "channel" -> "https://t.me/alpha_ai_tools_and_assets"
+            "group" -> "https://t.me/+-2i0ukGVbjcwOWQ8"
+            else -> throw ApiError(400, "err_bad_request")
+        }
+        try { ctx.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { throw ApiError(500, "err_open_failed") }
         return JSONObject().put("ok", true)
     }
 

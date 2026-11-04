@@ -4,6 +4,8 @@ App name: ALPHA AI
 Short description (max 80): AI study helper: chat, quizzes, notes, past exams, books and translation.
 Category: Education
 Tags: Education, Study, AI
+Telegram channel: https://t.me/alpha_ai_tools_and_assets
+Telegram group (feedback and error reports): https://t.me/+-2i0ukGVbjcwOWQ8
 Contact email: kinfemichaelsemagnatanaw@gmail.com
 Website: https://kinfemichael-alpha.github.io/alpha-assets/
 Privacy policy: https://kinfemichael-alpha.github.io/alpha-assets/privacy.html
@@ -40,6 +42,6 @@ Other Play Console forms:
 - Content rating questionnaire: Education/Reference; no violence, no user-to-user communication, no location sharing. AI content: the app uses generative AI chat (answer yes where asked).
 - News app: No. Government app: No. Financial features: No. Health features: No.
 - Advertising ID declaration: Yes (AdMob), purpose Advertising.
-- Generative AI policy: app has a way to report/flag; keep contact email visible.
+- Generative AI policy: users report problems and give feedback in the Telegram group (Contact screen, Community section).
 
 Graphics to prepare: app icon 512x512 PNG, feature graphic 1024x500, at least 2 phone screenshots (use 4-8, 16:9 or 9:16).

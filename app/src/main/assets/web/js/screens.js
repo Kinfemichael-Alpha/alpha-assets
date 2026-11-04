@@ -91,7 +91,12 @@
         any ? null : h('p', { class: 'muted' }, t('contact_none')),
         ...rows(c, 'phone', t('call_me'), 'btn_call'),
         ...rows(c, 'telegram', t('telegram'), 'btn_telegram'),
-        ...rows(c, 'email', t('email'), 'btn_email')));
+        ...rows(c, 'email', t('email'), 'btn_email')),
+        h('div', { class: 'card' },
+          h('h1', { class: 'hello' }, t('community_title')),
+          ...[['channel', 'community_channel'], ['group', 'community_group']].map(([w, k]) => h('div', { class: 'item' },
+            h('div', { class: 'grow' }, h('div', { class: 'muted small' }, t(k)), h('div', null, t(k + '_desc'))),
+            h('button', { class: 'btn sm', type: 'button', onclick: async () => { try { await A.post('/api/community/open', { which: w }); } catch (e) { A.info(e.message); } } }, t('btn_join'))))));
       A.scheduleMarquees();
     }
     return { el: A.page(A.bar({ title: t('contact_title') }), h('div', { class: 'scroll ruled' }, body)), onShow() { load(); } };
