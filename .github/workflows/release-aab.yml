@@ -16,6 +16,14 @@ jobs:
         run: git clone --depth 1 --branch b9999 https://github.com/ggml-org/llama.cpp app/src/main/cpp/llama.cpp
       - name: Install NDK and CMake
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;26.3.11579264" "cmake;3.22.1" > /dev/null
+      - name: Check signing secrets
+        env:
+          A: ${{ secrets.ALPHA_KEYSTORE_B64 }}
+          B: ${{ secrets.ALPHA_STORE_PASSWORD }}
+          C: ${{ secrets.ALPHA_KEY_ALIAS }}
+          D: ${{ secrets.ALPHA_KEY_PASSWORD }}
+        run: |
+          for v in A B C D; do if [ -z "${!v}" ]; then echo "::error::A signing secret is missing. Add all 4 secrets in Settings > Secrets and variables > Actions."; exit 1; fi; done
       - name: Decode keystore
         env:
           KEYSTORE_B64: ${{ secrets.ALPHA_KEYSTORE_B64 }}
