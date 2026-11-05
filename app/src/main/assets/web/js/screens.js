@@ -54,12 +54,16 @@
   A.screens.home = function home() {
     const nick = A.S.state.nickname;
     const tile = (cls, icon, label, screen, ok = true) => h('button', { class: 'tile ' + cls + (ok ? '' : ' lock'), type: 'button', onclick: () => (ok ? A.go(screen) : A.upsell()) }, A.icon(icon), h('span', null, label));
+    const updBox = h('div', { class: 'card tint row' }, h('span', { class: 'grow' }, t('upd_available')),
+      h('button', { class: 'btn sm', type: 'button', onclick: () => A.post('/api/update/open').catch((e) => A.info(e.message)) }, t('upd_download')));
+    updBox.hidden = true;
     const langBtn = h('button', { class: 'bar-btn txt', type: 'button', onclick: () => A.setLang(A.S.lang === 'AM' ? 'EN' : 'AM') }, t('lang_btn'));
     const setBtn = h('button', { class: 'bar-btn', type: 'button', 'aria-label': t('settings_title'), onclick: () => A.go('settings') }, A.icon('sliders'));
     const el = A.page(
       A.bar({ title: t('dashboard_title'), back: false, right: [langBtn, setBtn] }),
       h('div', { class: 'scroll ruled stack' },
         h('h1', { class: 'hello' }, nick ? t('home_greeting', { name: nick }) : t('dashboard_question')),
+        updBox,
         A.lic.badge(),
         A.ads.card(),
         h('div', { class: 'tiles' },
@@ -71,7 +75,7 @@
           tile('c-amber', 'book', t('btn_books'), 'books'),
           tile('c-purple', 'chart', t('btn_progress'), 'progress'),
           tile('wide c-accent', 'phone', t('btn_contact'), 'contact'))));
-    return { el };
+    return { el, onShow() { A.get('/api/update').then((r) => { updBox.hidden = !r.available; }).catch(() => {}); } };
   };
 
   /* ------------------------------------------------------------ መገናኛ */

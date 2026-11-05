@@ -18,7 +18,7 @@ android {
         applicationId = "com.kinfemichael.apps.alphaai"   // የመተግበሪያ መለያ (በ Play ላይ ቋሚ ነው) / permanent app id
         minSdk = 24            // Android 7.0+ / አንድ APK ለሁሉም
         targetSdk = 36
-        versionCode = 2
+        versionCode = System.getenv("ALPHA_BUILD_NUMBER")?.toIntOrNull()?.plus(100) ?: 2
         versionName = "1.0.0"
         // 32-bit ስልኮችም APK እንዲጭኑ ሁለቱም ABI ይፈቀዳሉ (offline AI ለ arm64 ብቻ ይሆናል)
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }

@@ -20,6 +20,7 @@ class ApiRouter(private val ctx: Context) {
     var ads: AdBridge? = null
     private val sync = ConfigSync(ctx)
     val license = LicenseManager(ctx, sync)
+    private val updater = UpdateChecker(ctx)
     val settings = SettingsStore(ctx)
     private val i18n: JSONObject = readAsset("i18n.json")
     private val themes: JSONArray = JSONArray(ctx.assets.open("themes.json").bufferedReader(Charsets.UTF_8).readText())
@@ -77,7 +78,7 @@ class ApiRouter(private val ctx: Context) {
     fun adsOn(): Boolean = license.adsOn()
 
     private val openPaths = setOf("/api/ping", "/api/state", "/api/i18n", "/api/profile", "/api/settings", "/api/settings/reset", "/api/exit",
-        "/api/contacts", "/api/contacts/open", "/api/community/open", "/api/ads/status", "/api/ads/banner", "/api/job")
+        "/api/contacts", "/api/contacts/open", "/api/community/open", "/api/ads/status", "/api/ads/banner", "/api/job", "/api/update", "/api/update/open")
     private val aiPaths = setOf("/api/ai/enter", "/api/ai/test", "/api/chat/send", "/api/chat/continue", "/api/chat/regenerate", "/api/chat/edit",
         "/api/translate", "/api/chat/translate", "/api/image/ocr", "/api/quiz/generate", "/api/notes/generate", "/api/provider/models")
 
@@ -102,6 +103,8 @@ class ApiRouter(private val ctx: Context) {
     }
 
     private fun route(method: String, path: String, b: JSONObject): JSONObject = when ("$method $path") {
+        "GET /api/update" -> JSONObject().put("available", updater.available())
+        "POST /api/update/open" -> updateOpen()
         "GET /api/license" -> license.view()
         "POST /api/license/free" -> { license.chooseFree(); licenseDone() }
         "POST /api/license/trial" -> { license.startTrial(b.optString("phone")); licenseDone() }
@@ -241,6 +244,7 @@ class ApiRouter(private val ctx: Context) {
             var lic = 0L
             while (true) {
                 try { if (sync.due()) syncNow() } catch (_: Exception) { }
+                try { updater.check() } catch (_: Exception) { }
                 try { if (System.currentTimeMillis() - lic > 6L * 3600L * 1000L && license.due()) { license.refresh(); lic = System.currentTimeMillis() } } catch (_: Exception) { }
                 try { Thread.sleep(30L * 60L * 1000L) } catch (_: InterruptedException) { return@Thread }
             }
@@ -273,6 +277,11 @@ class ApiRouter(private val ctx: Context) {
             else -> Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("mailto:$value"))
         }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try { ctx.startActivity(i) } catch (e: Exception) { throw ApiError(500, "err_open_failed") }
+        return JSONObject().put("ok", true)
+    }
+
+    private fun updateOpen(): JSONObject {
+        try { ctx.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(UpdateChecker.APK_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { throw ApiError(500, "err_open_failed") }
         return JSONObject().put("ok", true)
     }
 

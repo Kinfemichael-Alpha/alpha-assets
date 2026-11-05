@@ -23,6 +23,8 @@ jobs:
         with:
           gradle-version: '8.11.1'
       - name: Build debug APK
+        env:
+          ALPHA_BUILD_NUMBER: ${{ github.run_number }}
         run: |
           set -o pipefail
           gradle :app:assembleDebug --no-daemon 2>&1 | tee build.log
@@ -41,3 +43,5 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk alpha-ai.apk
           gh release view latest >/dev/null 2>&1 || gh release create latest --prerelease --title "Latest build" --notes "Newest debug APK. Download alpha-ai.apk below."
           gh release upload latest alpha-ai.apk --clobber
+          echo "{\"version_code\":$((GITHUB_RUN_NUMBER + 100))}" > version.json
+          gh release upload latest version.json --clobber
