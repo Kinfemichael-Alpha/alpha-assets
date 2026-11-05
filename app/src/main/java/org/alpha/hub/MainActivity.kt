@@ -103,6 +103,7 @@ class MainActivity : AppCompatActivity() {
         }
         setContentView(root)
         router.ads = AdManager(this, bannerBox, router.settings)
+        router.ads?.setBanner(router.adsOn())
         web.loadUrl("$origin/index.html")
     }
 

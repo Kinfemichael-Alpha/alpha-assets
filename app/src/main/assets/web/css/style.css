@@ -620,3 +620,5 @@ select.inp { appearance: auto; }
 
 .composer .bar-btn.attach { background: var(--tint); color: var(--ink); border: 1.5px solid var(--line); }
 .composer .bar-btn.attach:active { background: var(--primary); color: var(--white); }
+
+.tile.lock { opacity: .55; }

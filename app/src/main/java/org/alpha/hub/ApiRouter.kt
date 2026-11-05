@@ -19,6 +19,7 @@ class ApiRouter(private val ctx: Context) {
     var onExit: (() -> Unit)? = null
     var ads: AdBridge? = null
     private val sync = ConfigSync(ctx)
+    val license = LicenseManager(ctx, sync)
     val settings = SettingsStore(ctx)
     private val i18n: JSONObject = readAsset("i18n.json")
     private val themes: JSONArray = JSONArray(ctx.assets.open("themes.json").bufferedReader(Charsets.UTF_8).readText())
@@ -60,6 +61,7 @@ class ApiRouter(private val ctx: Context) {
             if (k.isNotEmpty()) body.put(k, java.net.URLDecoder.decode(kv.substringAfter('=', ""), "UTF-8"))
         }
         return try {
+            guard(path, body)
             Pair(200, route(method, path, body))
         } catch (e: ApiError) {
             Pair(e.status, JSONObject().put("error", e.key).put("message", msg(e.key) + chat.lastDetail.let { if (e.status == 502 && it.isNotEmpty() && settings.getBool("debug_details")) "\n($it)" else "" }))
@@ -68,7 +70,46 @@ class ApiRouter(private val ctx: Context) {
         }
     }
 
+    init {
+        license.onWipe = { try { chat.stop(); engine.unload(); downloader.cancel() } catch (_: Exception) { } }
+    }
+
+    fun adsOn(): Boolean = license.adsOn()
+
+    private val openPaths = setOf("/api/ping", "/api/state", "/api/i18n", "/api/profile", "/api/settings", "/api/settings/reset", "/api/exit",
+        "/api/contacts", "/api/contacts/open", "/api/community/open", "/api/ads/status", "/api/ads/banner", "/api/job")
+    private val aiPaths = setOf("/api/ai/enter", "/api/ai/test", "/api/chat/send", "/api/chat/continue", "/api/chat/regenerate", "/api/chat/edit",
+        "/api/translate", "/api/chat/translate", "/api/image/ocr", "/api/quiz/generate", "/api/notes/generate", "/api/provider/models")
+
+    private fun guard(path: String, b: JSONObject) {
+        if (path.startsWith("/api/license") || path in openPaths) return
+        val t = license.tier()
+        if (t < 0) throw ApiError(403, "license_required")
+        val f = license.features(t)
+        fun need(ok: Boolean) { if (!ok) throw ApiError(403, "tier_required") }
+        val kind = b.optString("kind")
+        when {
+            path in aiPaths -> need(if (settings.getBool("online_mode")) f.optBoolean("ai_online") else f.optBoolean("ai_offline"))
+            path.startsWith("/api/models/") || path.startsWith("/api/translator/") -> need(f.optBoolean("ai_offline"))
+            path == "/api/exams/index" || path == "/api/exams/get" -> if (kind == "generated" || kind == "notes") need(f.optBoolean("generated"))
+            path == "/api/exams/attempt" || path == "/api/exams/progress/save" -> need(f.optString("past_papers") == "exam")
+        }
+    }
+
+    private fun licenseDone(): JSONObject {
+        ads?.setBanner(license.adsOn())
+        return license.view()
+    }
+
     private fun route(method: String, path: String, b: JSONObject): JSONObject = when ("$method $path") {
+        "GET /api/license" -> license.view()
+        "POST /api/license/free" -> { license.chooseFree(); licenseDone() }
+        "POST /api/license/trial" -> { license.startTrial(b.optString("phone")); licenseDone() }
+        "POST /api/license/register" -> { license.register(b.optString("phone"), b.optInt("tier"), b.optString("txn_id"), b.optString("method")); licenseDone() }
+        "POST /api/license/refresh" -> { license.refresh(); licenseDone() }
+        "POST /api/license/move" -> { license.move(b.optString("phone"), b.optString("recovery_code")); licenseDone() }
+        "POST /api/license/ack_code" -> { license.ackCode(); license.view() }
+        "POST /api/license/ack_notice" -> { license.ackNotice(); license.view() }
         "GET /api/ping" -> JSONObject().put("ok", true).put("version", APP_VERSION)
         "GET /api/state" -> state()
         "GET /api/i18n" -> JSONObject().put("strings", i18n)
@@ -76,7 +117,7 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/settings" -> updateSettings(b)
         "POST /api/settings/reset" -> { settings.reset(); JSONObject().put("settings", settingsView()) }
         "GET /api/ads/status" -> adsStatus()
-        "POST /api/ads/banner" -> { ads?.setBanner(b.optBoolean("visible", true)); JSONObject().put("ok", true) }
+        "POST /api/ads/banner" -> { ads?.setBanner(b.optBoolean("visible", true) && license.adsOn()); JSONObject().put("ok", true) }
         "GET /api/library" -> libraryList(b)
         "POST /api/library/download" -> libraryDownload(b)
         "GET /api/download" -> downloader.snapshot()
@@ -197,8 +238,10 @@ class ApiRouter(private val ctx: Context) {
 
     init {
         Thread {
+            var lic = 0L
             while (true) {
                 try { if (sync.due()) syncNow() } catch (_: Exception) { }
+                try { if (System.currentTimeMillis() - lic > 6L * 3600L * 1000L && license.due()) { license.refresh(); lic = System.currentTimeMillis() } } catch (_: Exception) { }
                 try { Thread.sleep(30L * 60L * 1000L) } catch (_: InterruptedException) { return@Thread }
             }
         }.apply { isDaemon = true }.start()
@@ -327,10 +370,11 @@ class ApiRouter(private val ctx: Context) {
         .put("settings", settingsView())
         .put("themes", themes)
         .put("ads", adsStatus())
+        .put("license", license.view())
 
     private fun adsStatus(): JSONObject {
         val now = System.currentTimeMillis()
-        return JSONObject().put("active", true).put("remaining", 86400).put("next_minutes", 0)
+        return JSONObject().put("active", license.adsOn()).put("remaining", 86400).put("next_minutes", 0)
             .put("provider", "admob").put("banner_dp", 0).put("fake_banner", false)
             .put("points", settings.getInt("points"))
             .put("skip_left", maxOf(0L, (settings.getLong("skip_until") - now) / 1000L))
@@ -339,6 +383,7 @@ class ApiRouter(private val ctx: Context) {
 
     private fun rewardedAd(): JSONObject {
         val bridge = ads ?: return JSONObject().put("source", "none").put("points", settings.getInt("points"))
+        if (!license.adsOn()) return JSONObject().put("source", "none").put("points", settings.getInt("points"))
         val latch = java.util.concurrent.CountDownLatch(1)
         var ok = false
         bridge.showRewarded { ok = it; latch.countDown() }
@@ -358,7 +403,7 @@ class ApiRouter(private val ctx: Context) {
     private fun interstitialAd(): JSONObject {
         val now = System.currentTimeMillis()
         val bridge = ads
-        val allowed = bridge != null && bridge.isOnline() && now > settings.getLong("skip_until") && now >= nextInter
+        val allowed = bridge != null && license.adsOn() && bridge.isOnline() && now > settings.getLong("skip_until") && now >= nextInter
         if (!allowed) return JSONObject().put("shown", false)
         nextInter = now + 180000L; lastAdAt = now
         bridge!!.showInterstitial { }
@@ -368,7 +413,7 @@ class ApiRouter(private val ctx: Context) {
     private fun downloadAd() {
         val now = System.currentTimeMillis()
         val bridge = ads
-        if (bridge == null || !bridge.isOnline() || now <= settings.getLong("skip_until") || now - lastAdAt < 20000L) return
+        if (bridge == null || !license.adsOn() || !bridge.isOnline() || now <= settings.getLong("skip_until") || now - lastAdAt < 20000L) return
         nextInter = now + 180000L; lastAdAt = now
         bridge.showInterstitial { }
     }

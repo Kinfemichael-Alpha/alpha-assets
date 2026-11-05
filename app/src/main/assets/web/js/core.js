@@ -295,6 +295,7 @@
       });
       let r = { status: 500, data: {} };
       try { r = JSON.parse(raw); } catch (e) { /* ባዶ */ }
+      if (r.status === 403 && r.data && r.data.error === 'license_required' && A.onLicenseRequired) A.onLicenseRequired();
       if (r.status >= 400) throw new ApiError(r.status, r.data);
       return r.data;
     }

@@ -8,7 +8,7 @@ import org.json.JSONObject
 
 class ConfigSync(private val ctx: Context) {
     private val base = "https://huggingface.co/datasets/Kinfemichael/Alpha-links/raw/main/"
-    val files = listOf("contacts.json", "books.json", "models.json", "providers.json")
+    val files = listOf("contacts.json", "books.json", "models.json", "providers.json", "tiers.json")
     private val dir get() = File(ctx.filesDir, "config").apply { mkdirs() }
     private val meta get() = File(dir, "meta.json")
     private val memo = HashMap<String, Pair<Long, String>>()

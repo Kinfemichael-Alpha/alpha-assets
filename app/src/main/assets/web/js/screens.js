@@ -53,20 +53,21 @@
   /* ------------------------------------------------------------ ዋና ገጽ */
   A.screens.home = function home() {
     const nick = A.S.state.nickname;
-    const tile = (cls, icon, label, screen) => h('button', { class: 'tile ' + cls, type: 'button', onclick: () => A.go(screen) }, A.icon(icon), h('span', null, label));
+    const tile = (cls, icon, label, screen, ok = true) => h('button', { class: 'tile ' + cls + (ok ? '' : ' lock'), type: 'button', onclick: () => (ok ? A.go(screen) : A.upsell()) }, A.icon(icon), h('span', null, label));
     const langBtn = h('button', { class: 'bar-btn txt', type: 'button', onclick: () => A.setLang(A.S.lang === 'AM' ? 'EN' : 'AM') }, t('lang_btn'));
     const setBtn = h('button', { class: 'bar-btn', type: 'button', 'aria-label': t('settings_title'), onclick: () => A.go('settings') }, A.icon('sliders'));
     const el = A.page(
       A.bar({ title: t('dashboard_title'), back: false, right: [langBtn, setBtn] }),
       h('div', { class: 'scroll ruled stack' },
         h('h1', { class: 'hello' }, nick ? t('home_greeting', { name: nick }) : t('dashboard_question')),
+        A.lic.badge(),
         A.ads.card(),
         h('div', { class: 'tiles' },
-          tile('main c-green', 'chat', t('btn_ai'), 'ai'),
+          tile('main c-green', 'chat', t('btn_ai'), 'ai', A.hasAI()),
           tile('c-blue', 'exam', t('btn_exams'), 'exams'),
-          tile('c-purple', 'sparkle', t('btn_generated'), 'generated'),
-          tile('c-blue', 'quiz', t('btn_quiz'), 'quiz'),
-          tile('c-teal', 'note', t('btn_notes'), 'notes'),
+          tile('c-purple', 'sparkle', t('btn_generated'), 'generated', A.can('generated')),
+          tile('c-blue', 'quiz', t('btn_quiz'), 'quiz', A.hasAI()),
+          tile('c-teal', 'note', t('btn_notes'), 'notes', A.hasAI()),
           tile('c-amber', 'book', t('btn_books'), 'books'),
           tile('c-purple', 'chart', t('btn_progress'), 'progress'),
           tile('wide c-accent', 'phone', t('btn_contact'), 'contact'))));
@@ -117,6 +118,7 @@
     const load = (async () => {
       const [state, i18n] = await Promise.all([A.get('/api/state'), A.get('/api/i18n')]);
       A.S.state = state;
+      A.lic.apply(state.license);
       A.S.strings = i18n.strings;
       A.S.lang = state.settings.language;
       document.documentElement.lang = A.S.lang === 'AM' ? 'am' : 'en';
@@ -125,7 +127,8 @@
     })();
     try { await Promise.all([A.sleep(5000), load]); } catch (e) { return fatal(e); }
     // ራስ-ሰር አቅጣጫ: የመጀመሪያ ጊዜ -> አማራጭ ቅጽል ስም ገጽ፣ ከዚያ በኋላ -> ዋና ገጽ
-    await A.go(A.S.state.onboarded ? 'home' : 'welcome', {}, { root: true, force: true });
+    await A.lic.route();
+    A.lic.start();
     if (A.S.state.crash_model) {
       const name = A.S.state.crash_model;
       A.S.state.crash_model = '';

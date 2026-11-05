@@ -267,7 +267,9 @@
       const n = st.count ? Math.min(st.count, items.length) : items.length;
       const picked = arrange(items, st.count ? n : 0);
       const label = st.src === 'year' ? examName(chosen[0]) : st.src === 'topic' ? st.topics.join(', ') : t('exams_src_mixed');
-      start({ kind, subject: p.subject, grade: p.grade, label, items: picked, perQ: st.minutes });
+      const session = { kind, subject: p.subject, grade: p.grade, label, items: picked, perQ: st.minutes };
+      if (kind === 'past' && !A.examMode()) A.go('examreview', { session, answers: {}, only: 'all', view: true });
+      else start(session);
     }
 
     return {
@@ -440,7 +442,7 @@
         box.append(h('div', { class: 'opt' + cls }, h('span', { class: 'ltr' }, L), md('span', 'grow', q.options[L])));
       });
       card.append(box);
-      card.append(h('div', { class: 'muted small' }, mine ? t('exam_your_answer') + ': ' + mine : t('exam_not_answered')));
+      if (!p.view) card.append(h('div', { class: 'muted small' }, mine ? t('exam_your_answer') + ': ' + mine : t('exam_not_answered')));
       if (q.explanation) card.append(h('div', { class: 'explain' }, h('b', null, t('exam_explanation')), md('div', null, q.explanation)));
       if (q.extra) {
         const more = h('div', { class: 'stack' });
