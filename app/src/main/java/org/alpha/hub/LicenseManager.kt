@@ -297,6 +297,10 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         }
     }
 
+    fun contentToken(): String? = synchronized(this) {
+        if (state() == "active" && features(tier()).optBoolean("generated")) data.optString("token").ifEmpty { null } else null
+    }
+
     fun relayToken(): String? = synchronized(this) {
         if (state() == "active" && features(tier()).optString("key_mode") == "ours") data.optString("token").ifEmpty { null } else null
     }

@@ -13,6 +13,7 @@ import org.json.JSONObject
 import org.json.JSONTokener
 
 class ExamService(ctx: Context) {
+    @Volatile var contentToken: (() -> String?)? = null
     private val base = "https://huggingface.co/datasets/Kinfemichael/Ethiopian_Exams_and_Books/resolve/main/"
     private val dir = File(ctx.filesDir, "exams").apply { mkdirs() }
     private val historyFile = File(dir, "history.json")
@@ -28,18 +29,36 @@ class ExamService(ctx: Context) {
     private fun kindOf(k: String): String = if (k == "generated" || k == "notes") k else "past"
     private fun enc(path: String) = path.split('/').joinToString("/") { URLEncoder.encode(it, "UTF-8").replace("+", "%20") }
 
-    private fun fetch(path: String, maxBytes: Int): String {
+    private fun paidRel(path: String): String =
+        if (path.startsWith("https://")) path.substringAfter("/resolve/main/", "") else path
+
+    private fun fetch(path: String, maxBytes: Int, paid: Boolean = false): String {
+        val tk = if (paid) contentToken?.invoke() else null
+        if (tk != null) {
+            val rel = paidRel(path)
+            if (rel.isNotEmpty() && !rel.contains("..")) {
+                try { return open(LicenseManager.SERVER + "/content/" + (if (path.startsWith("https://")) rel else enc(rel)), maxBytes, tk) }
+                catch (e: ApiError) { if (e.status != 503) throw e }
+            }
+        }
         val full = if (path.startsWith("https://")) {
             val host = try { URL(path).host } catch (_: Exception) { "" }
             if (host != "huggingface.co" && !host.endsWith(".huggingface.co")) throw ApiError(400, "err_bad_request")
             path
         } else base + enc(path)
+        return open(full, maxBytes, null)
+    }
+
+    private fun open(full: String, maxBytes: Int, token: String?): String {
         val c = URL(full).openConnection() as HttpURLConnection
         try {
             c.connectTimeout = 15000; c.readTimeout = 90000
             c.setRequestProperty("User-Agent", "AlphaAI/0.1")
+            if (token != null) c.setRequestProperty("x-alpha-token", token)
             val code = c.responseCode
             if (code == 404) throw ApiError(404, "exam_not_found")
+            if (code == 403 && token != null) throw ApiError(403, "tier_required")
+            if (code == 503 && token != null) throw ApiError(503, "content_unconfigured")
             if (code != 200) throw ApiError(502, "exam_dl_failed")
             val bytes = c.inputStream.use { it.readBytes() }
             if (bytes.size > maxBytes) throw ApiError(502, "exam_dl_failed")
@@ -93,7 +112,7 @@ class ExamService(ctx: Context) {
             var ok = false
             for (name in indexNames.getValue(kind)) {
                 try {
-                    val text = fetch(name, 4 * 1024 * 1024)
+                    val text = fetch(name, 4 * 1024 * 1024, kind != "past")
                     normalizeIndex(text)
                     write(f, text)
                     ok = true
@@ -117,7 +136,7 @@ class ExamService(ctx: Context) {
         val f = examFile(kind, id)
         if (f.exists()) try { return wrap(kind, JSONTokener(f.readText(Charsets.UTF_8)).nextValue()) } catch (_: Exception) { f.delete() }
         if (path.isEmpty() || path.contains("..")) throw ApiError(400, "err_bad_request")
-        val text = fetch(path, 25 * 1024 * 1024)
+        val text = fetch(path, 25 * 1024 * 1024, kind != "past")
         val j = try { wrap(kind, JSONTokener(text).nextValue()) } catch (e: ApiError) { throw e } catch (_: Exception) { throw ApiError(502, "exam_dl_failed") }
         write(f, text)
         return j
