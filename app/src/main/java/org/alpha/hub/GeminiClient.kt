@@ -237,6 +237,8 @@ class GeminiClient {
     private fun httpError(code: Int, body: String): GeminiError {
         val msg = try { JSONObject(body).optJSONObject("error")?.optString("message", "") ?: "" } catch (_: Exception) { "" }
         val key = when {
+            msg == "relay_limit" -> "relay_limit"
+            msg == "relay_denied" -> "relay_denied"
             code == 401 || code == 403 -> "online_rejected"
             code == 400 && (msg.contains("API key", true) || msg.contains("api_key", true)) -> "online_rejected"
             code == 404 -> "online_model_gone"
