@@ -14,9 +14,10 @@ import org.json.JSONObject
 
 class LlmService(private val settings: SettingsStore, private val source: () -> String?) {
     private val gemini = GeminiClient()
-    var relayToken: () -> String? = { null }
-    init { gemini.relay = { relayToken() } }
     private val wire = WireClient()
+    var relayToken: () -> String? = { null }
+    var relayFor: (String) -> Boolean = { false }
+    init { gemini.relay = { if (relayFor("gemini")) relayToken() else null }; wire.token = { relayToken() } }
     private var presText: String? = null
     private var presParsed = JSONArray()
     private val presets: JSONArray get() {
@@ -34,8 +35,9 @@ class LlmService(private val settings: SettingsStore, private val source: () -> 
     fun activeId(): String = settings.getString("provider").let { if (preset(it) != null) it else "gemini" }
 
     private fun cfg(id: String): JSONObject = settings.getJson("provider_cfg").optJSONObject(id) ?: JSONObject()
-    private fun keyOf(id: String) = if (id == "gemini") (if (relayToken() != null) "relay" else settings.getString("gemini_key")) else cfg(id).optString("key")
+    private fun keyOf(id: String) = if (relayFor(id)) "relay" else if (id == "gemini") settings.getString("gemini_key") else cfg(id).optString("key")
     private fun baseOf(id: String): String {
+        if (relayFor(id)) return LicenseManager.SERVER + "/relay/" + id
         val p = preset(id) ?: return ""
         return cfg(id).optString("base_url").ifEmpty { p.optString("base_url") }.trim().trimEnd('/')
     }
@@ -159,6 +161,7 @@ class LlmService(private val settings: SettingsStore, private val source: () -> 
 }
 
 class WireClient {
+    var token: () -> String? = { null }
     @Volatile private var conn: HttpURLConnection? = null
     fun abort() { try { conn?.disconnect() } catch (_: Exception) { } }
 
@@ -173,6 +176,8 @@ class WireClient {
         val msg = try { JSONObject(body).let { o -> o.optJSONObject("error")?.optString("message") ?: o.optString("message") } } catch (_: Exception) { body.take(200) }
         val low = msg.lowercase()
         val key = when {
+            low == "relay_limit" -> "relay_limit"
+            low == "relay_denied" -> "relay_denied"
             code == 401 || code == 403 -> "online_rejected"
             code == 402 || low.contains("quota") || low.contains("insufficient") || low.contains("credit") || low.contains("billing") -> "online_quota"
             code == 404 || (code == 400 && low.contains("model")) -> "online_model_gone"
@@ -185,7 +190,9 @@ class WireClient {
     private fun open(url: String, key: String, anth: Boolean, post: Boolean): HttpURLConnection {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = 15000; c.readTimeout = if (post) 60000 else 20000
-        if (anth) { c.setRequestProperty("x-api-key", key); c.setRequestProperty("anthropic-version", "2023-06-01") }
+        val rt = if (url.startsWith(LicenseManager.SERVER + "/relay/")) token() else null
+        if (rt != null) c.setRequestProperty("x-alpha-token", rt)
+        else if (anth) { c.setRequestProperty("x-api-key", key); c.setRequestProperty("anthropic-version", "2023-06-01") }
         else c.setRequestProperty("Authorization", "Bearer $key")
         if (post) { c.requestMethod = "POST"; c.doOutput = true; c.setRequestProperty("Content-Type", "application/json; charset=utf-8") }
         return c

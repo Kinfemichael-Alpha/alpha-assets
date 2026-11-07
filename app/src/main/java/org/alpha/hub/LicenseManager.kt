@@ -288,6 +288,29 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         if (state() == "active" && features(tier()).optString("key_mode") == "ours") data.optString("token").ifEmpty { null } else null
     }
 
+    @Volatile private var relayIds: Set<String> = emptySet()
+    @Volatile private var relayAt = 0L
+
+    fun relayFor(id: String): Boolean = relayToken() != null && id in relayIds
+
+    fun refreshRelay() {
+        val tk = relayToken()
+        if (tk == null) { relayIds = emptySet(); return }
+        if (relayIds.isNotEmpty() && System.currentTimeMillis() - relayAt < 600000L) return
+        val c = URL("$SERVER/relay/_providers").openConnection() as HttpURLConnection
+        try {
+            c.connectTimeout = 12000; c.readTimeout = 15000
+            c.setRequestProperty("x-alpha-token", tk)
+            if (c.responseCode == 200) {
+                val arr = JSONObject(c.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }).optJSONArray("ids")
+                val out = HashSet<String>()
+                if (arr != null) for (i in 0 until arr.length()) out.add(arr.getString(i))
+                relayIds = out
+                relayAt = System.currentTimeMillis()
+            }
+        } catch (_: Exception) { } finally { c.disconnect() }
+    }
+
     fun ackCode() { synchronized(this) { data.remove("code"); save() } }
 
     fun ackNotice() { synchronized(this) { data.remove("wiped"); save() } }
