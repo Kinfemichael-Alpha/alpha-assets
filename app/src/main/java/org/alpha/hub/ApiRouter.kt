@@ -93,6 +93,7 @@ class ApiRouter(private val ctx: Context) {
             path in aiPaths -> need(if (settings.getBool("online_mode")) f.optBoolean("ai_online") else f.optBoolean("ai_offline"))
             path.startsWith("/api/models/") || path.startsWith("/api/translator/") -> need(f.optBoolean("ai_offline"))
             path == "/api/exams/index" || path == "/api/exams/get" -> if (kind == "generated" || kind == "notes") need(f.optBoolean("generated"))
+            path == "/api/quota/use" -> need(f.optBoolean("generated"))
             path == "/api/exams/attempt" || path == "/api/exams/progress/save" -> need(f.optString("past_papers") == "exam")
         }
     }
@@ -103,6 +104,7 @@ class ApiRouter(private val ctx: Context) {
     }
 
     private fun route(method: String, path: String, b: JSONObject): JSONObject = when ("$method $path") {
+        "POST /api/quota/use" -> license.quotaUse(b.optString("subject"), b.optInt("count"))
         "GET /api/update" -> JSONObject().put("available", updater.available())
         "POST /api/update/open" -> updateOpen()
         "GET /api/license" -> license.view()

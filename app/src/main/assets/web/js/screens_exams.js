@@ -265,7 +265,12 @@
       items = items.filter((it) => it.q && it.q.options && Object.keys(it.q.options).length && it.q.answer);
       if (!items.length) return A.info(t('exams_no_q'));
       const n = st.count ? Math.min(st.count, items.length) : items.length;
-      const picked = arrange(items, st.count ? n : 0);
+      let picked = arrange(items, st.count ? n : 0);
+      if (kind === 'generated') {
+        let q;
+        try { q = await A.post('/api/quota/use', { subject: p.subject, count: picked.length }); } catch (e) { return A.info(e.message); }
+        if (q.granted < picked.length) { picked = picked.slice(0, q.granted); await A.info(t('quota_cut', { n: q.granted, limit: q.limit })); }
+      }
       const label = st.src === 'year' ? examName(chosen[0]) : st.src === 'topic' ? st.topics.join(', ') : t('exams_src_mixed');
       const session = { kind, subject: p.subject, grade: p.grade, label, items: picked, perQ: st.minutes };
       if (kind === 'past' && !A.examMode()) A.go('examreview', { session, answers: {}, only: 'all', view: true });

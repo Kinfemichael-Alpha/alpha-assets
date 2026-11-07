@@ -266,6 +266,24 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         }
     }
 
+    fun quotaUse(subject: String, want: Int): JSONObject {
+        val limit = features(tier().coerceAtLeast(0)).optInt("daily_questions", 0)
+        if (limit <= 0) throw ApiError(403, "tier_required")
+        val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+        val key = subject.trim().lowercase().ifEmpty { "-" }
+        synchronized(this) {
+            var q = data.optJSONObject("quota")
+            if (q == null || q.optString("day") != day) { q = JSONObject().put("day", day); data.put("quota", q) }
+            val used = q.optInt(key)
+            val left = maxOf(0, limit - used)
+            val give = minOf(maxOf(want, 0), left)
+            if (give <= 0) throw ApiError(429, "quota_exceeded")
+            q.put(key, used + give)
+            save()
+            return JSONObject().put("granted", give).put("left", left - give).put("limit", limit)
+        }
+    }
+
     fun ackCode() { synchronized(this) { data.remove("code"); save() } }
 
     fun ackNotice() { synchronized(this) { data.remove("wiped"); save() } }
