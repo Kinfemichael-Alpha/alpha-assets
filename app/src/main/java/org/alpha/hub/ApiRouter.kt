@@ -72,6 +72,7 @@ class ApiRouter(private val ctx: Context) {
     }
 
     init {
+        llm.relayToken = { license.relayToken() }
         license.onWipe = { try { chat.stop(); engine.unload(); downloader.cancel() } catch (_: Exception) { } }
     }
 

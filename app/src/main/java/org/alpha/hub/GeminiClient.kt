@@ -26,7 +26,12 @@ class StreamResult(val finishReason: String, val blocked: Boolean, val info: Str
  * Model names are NOT hardcoded: taken from ListModels, falling back to the next on 404.
  */
 class GeminiClient {
-    private val base = "https://generativelanguage.googleapis.com/v1beta"
+    @Volatile var relay: (() -> String?)? = null
+    private fun base(): String = if (relay?.invoke() != null) LicenseManager.SERVER + "/gemini" else "https://generativelanguage.googleapis.com/v1beta"
+    private fun auth(c: HttpURLConnection, key: String) {
+        val t = relay?.invoke()
+        if (t != null) c.setRequestProperty("x-alpha-token", t) else c.setRequestProperty("x-goog-api-key", key)
+    }
     @Volatile private var cachedKey = ""
     @Volatile private var cachedModels: List<String> = emptyList()
     @Volatile private var workingModel = ""
@@ -40,7 +45,7 @@ class GeminiClient {
     /** ለውይይት የሚሆኑ ሞዴሎች በቅድሚያ ቅደም ተከተል / usable chat models, best first */
     private fun models(key: String, force: Boolean = false): List<String> {
         if (!force && key == cachedKey && cachedModels.isNotEmpty()) return cachedModels
-        val raw = httpGet("$base/models?pageSize=200", key)
+        val raw = httpGet("${base()}/models?pageSize=200", key)
         val arr = JSONObject(raw).optJSONArray("models") ?: JSONArray()
         val out = ArrayList<Pair<Int, String>>()
         for (i in 0 until arr.length()) {
@@ -119,12 +124,12 @@ class GeminiClient {
             if (mode == 1) gen.put("thinkingConfig", JSONObject().put("thinkingLevel", "minimal"))
             val o = JSONObject().put("contents", contents).put("generationConfig", gen)
             if (system.isNotEmpty()) o.put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", system))))
-            val c = URL("$base/models/$model:generateContent").openConnection() as HttpURLConnection
+            val c = URL("${base()}/models/$model:generateContent").openConnection() as HttpURLConnection
             conn = c
             try {
                 c.requestMethod = "POST"; c.connectTimeout = 20000; c.readTimeout = 100000; c.doOutput = true
                 c.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                c.setRequestProperty("x-goog-api-key", key)
+                auth(c, key)
                 c.outputStream.use { it.write(o.toString().toByteArray(Charsets.UTF_8)) }
                 val code = c.responseCode
                 if (code != 200) {
@@ -165,12 +170,12 @@ class GeminiClient {
         }
         var mode = 0
         while (true) {
-            val c = URL("$base/models/$model:streamGenerateContent?alt=sse").openConnection() as HttpURLConnection
+            val c = URL("${base()}/models/$model:streamGenerateContent?alt=sse").openConnection() as HttpURLConnection
             conn = c
             try {
                 c.requestMethod = "POST"; c.connectTimeout = 15000; c.readTimeout = 60000; c.doOutput = true
                 c.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                c.setRequestProperty("x-goog-api-key", key)   // ቁልፉ በ URL ውስጥ እንዳይገባ በ header / key in header, not URL
+                auth(c, key)   // ቁልፉ በ URL ውስጥ እንዳይገባ በ header / key in header, not URL
                 c.outputStream.use { it.write(body(mode).toByteArray(Charsets.UTF_8)) }
                 val code = c.responseCode
                 if (code != 200) {
@@ -215,7 +220,7 @@ class GeminiClient {
         val c = URL(url).openConnection() as HttpURLConnection
         try {
             c.connectTimeout = 15000; c.readTimeout = 20000
-            c.setRequestProperty("x-goog-api-key", key)
+            auth(c, key)
             val code = c.responseCode
             if (code != 200) throw httpError(code, (c.errorStream ?: c.inputStream).bufferedReader(Charsets.UTF_8).readText())
             return c.inputStream.bufferedReader(Charsets.UTF_8).readText()

@@ -284,6 +284,10 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         }
     }
 
+    fun relayToken(): String? = synchronized(this) {
+        if (state() == "active" && features(tier()).optString("key_mode") == "ours") data.optString("token").ifEmpty { null } else null
+    }
+
     fun ackCode() { synchronized(this) { data.remove("code"); save() } }
 
     fun ackNotice() { synchronized(this) { data.remove("wiped"); save() } }

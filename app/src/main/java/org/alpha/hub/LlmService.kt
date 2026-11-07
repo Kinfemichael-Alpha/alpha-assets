@@ -14,6 +14,8 @@ import org.json.JSONObject
 
 class LlmService(private val settings: SettingsStore, private val source: () -> String?) {
     private val gemini = GeminiClient()
+    var relayToken: () -> String? = { null }
+    init { gemini.relay = { relayToken() } }
     private val wire = WireClient()
     private var presText: String? = null
     private var presParsed = JSONArray()
@@ -32,7 +34,7 @@ class LlmService(private val settings: SettingsStore, private val source: () -> 
     fun activeId(): String = settings.getString("provider").let { if (preset(it) != null) it else "gemini" }
 
     private fun cfg(id: String): JSONObject = settings.getJson("provider_cfg").optJSONObject(id) ?: JSONObject()
-    private fun keyOf(id: String) = if (id == "gemini") settings.getString("gemini_key") else cfg(id).optString("key")
+    private fun keyOf(id: String) = if (id == "gemini") (if (relayToken() != null) "relay" else settings.getString("gemini_key")) else cfg(id).optString("key")
     private fun baseOf(id: String): String {
         val p = preset(id) ?: return ""
         return cfg(id).optString("base_url").ifEmpty { p.optString("base_url") }.trim().trimEnd('/')
