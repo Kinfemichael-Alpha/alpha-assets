@@ -3,7 +3,7 @@
   const A = window.A, h = A.h, t = A.t;
   const lic = (A.lic = { v: null, timer: null, trialEnd: 0, tick: 0 });
   const GATED = ['none', 'trial_expired', 'locked'];
-  const OWN = ['license', 'licreg', 'lictrial', 'licmove', 'licpending', 'liccode'];
+  const OWN = ['license', 'licreg', 'lictrial', 'licredeem', 'licmove', 'licpending', 'liccode'];
 
   A.can = (k) => !!(lic.v && lic.v.features && lic.v.features[k]);
   A.hasAI = () => A.can('ai_offline') || A.can('ai_online');
@@ -84,6 +84,17 @@
     return i;
   };
 
+  function policyBox() {
+    const v = lic.v;
+    const custom = v && v.policy && (v.policy[A.S.lang] || v.policy.EN);
+    const cb = h('input', { type: 'checkbox', 'aria-label': t('lic_policy_accept') });
+    const box = h('div', { class: 'card stack' },
+      h('b', null, t('lic_policy_title')),
+      h('p', { class: 'muted small', style: { whiteSpace: 'pre-line' } }, custom || t('lic_policy')),
+      h('label', { class: 'row' }, cb, h('span', { class: 'grow' }, t('lic_policy_accept'))));
+    return { el: box, ok: () => cb.checked };
+  }
+
   function busy(btn, fn) {
     return async () => {
       if (btn.disabled) return;
@@ -114,6 +125,7 @@
     }
     if (v.state === 'none') body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('lictrial') }, t('lic_trial_btn')));
     if (v.tier < 5 && v.state !== 'locked') body.append(h('button', { class: 'btn block', type: 'button', onclick: () => A.go('licreg') }, t('lic_register_btn')));
+    body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('licredeem') }, t('lic_redeem_btn')));
     body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('licmove') }, t('lic_move_btn')));
     body.append(h('h2', { class: 'h-sec' }, t('lic_levels')));
     for (let i = 0; i <= 5; i++) {
@@ -127,14 +139,16 @@
 
   A.screens.lictrial = function lictrial() {
     const phone = phoneInput('');
+    const pol = policyBox();
     const go = h('button', { class: 'btn block', type: 'button' }, t('lic_trial_start'));
     go.addEventListener('click', busy(go, async () => {
+      if (!pol.ok()) return A.info(t('lic_policy_need'));
       if (!phone.value.trim()) return A.info(t('lic_err_bad_phone'));
       lic.apply(await A.post('/api/license/trial', { phone: phone.value }));
       return lic.route();
     }));
     return { el: A.page(A.bar({ title: t('lic_trial_btn'), pts: false }), h('div', { class: 'scroll ruled stack' },
-      h('div', { class: 'card stack' }, h('p', null, t('lic_trial_info')), h('label', { class: 'fld' }, h('span', null, t('lic_phone')), phone), go))) };
+      pol.el, h('div', { class: 'card stack' }, h('p', null, t('lic_trial_info')), h('label', { class: 'fld' }, h('span', null, t('lic_phone')), phone), go))) };
   };
 
   A.screens.licreg = function licreg(p) {
@@ -169,8 +183,10 @@
         h('p', null, t('lic_pay_howto', { p: price(f), m: t('lic_m_' + st.method) })),
         h('div', { class: 'row' }, h('b', { class: 'grow' }, num || '-'), num ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => A.copy(num) }, t('act_copy')) : null));
     }
+    const pol = policyBox();
     const go = h('button', { class: 'btn block', type: 'button' }, t('lic_submit'));
     go.addEventListener('click', busy(go, async () => {
+      if (!pol.ok()) return A.info(t('lic_policy_need'));
       if (!phone.value.trim()) return A.info(t('lic_err_bad_phone'));
       if (!txn.value.trim()) return A.info(t('lic_err_bad_txn'));
       lic.apply(await A.post('/api/license/register', { phone: phone.value, tier: st.tier, txn_id: txn.value, method: st.method }));
@@ -179,8 +195,25 @@
     }));
     drawTiers(); drawPay();
     return { el: A.page(A.bar({ title: t('lic_register_btn'), pts: false }), h('div', { class: 'scroll ruled stack' },
-      tiersBox, payBox, h('div', { class: 'card stack' }, h('label', { class: 'fld' }, h('span', null, t('lic_phone')), phone), h('label', { class: 'fld' }, h('span', null, t('lic_txn')), txn), go))),
+      tiersBox, payBox, pol.el, h('div', { class: 'card stack' }, h('label', { class: 'fld' }, h('span', null, t('lic_phone')), phone), h('label', { class: 'fld' }, h('span', null, t('lic_txn')), txn), go))),
       getParams: () => Object.assign({}, p, { v: st }) };
+  };
+
+  A.screens.licredeem = function licredeem() {
+    const phone = phoneInput('');
+    const code = h('input', { class: 'inp', type: 'text', maxlength: '12', autocapitalize: 'characters', autocomplete: 'off', placeholder: 'XXXX-XXXX', 'aria-label': t('lic_invite') });
+    const pol = policyBox();
+    const go = h('button', { class: 'btn block', type: 'button' }, t('lic_redeem_go'));
+    go.addEventListener('click', busy(go, async () => {
+      if (!pol.ok()) return A.info(t('lic_policy_need'));
+      if (!phone.value.trim()) return A.info(t('lic_err_bad_phone'));
+      if (!code.value.trim()) return A.info(t('lic_err_bad_code'));
+      lic.apply(await A.post('/api/license/redeem', { phone: phone.value, code: code.value }));
+      return lic.route();
+    }));
+    return { el: A.page(A.bar({ title: t('lic_redeem_btn'), pts: false }), h('div', { class: 'scroll ruled stack' },
+      pol.el, h('div', { class: 'card stack' }, h('p', null, t('lic_redeem_info')), h('label', { class: 'fld' }, h('span', null, t('lic_phone')), phone),
+        h('label', { class: 'fld' }, h('span', null, t('lic_invite')), code), go))) };
   };
 
   A.screens.licmove = function licmove() {

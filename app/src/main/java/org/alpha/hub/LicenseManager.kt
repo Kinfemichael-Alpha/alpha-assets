@@ -156,7 +156,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         val o = JSONObject().put("state", st).put("tier", t).put("features", features(t.coerceAtLeast(0)))
             .put("phone", data.optString("phone")).put("pending_tier", data.optInt("pending_tier"))
             .put("offline_days", c.optInt("offline_days", 7)).put("currency", c.optString("currency", "ETB"))
-            .put("pay_to", c.optJSONObject("pay_to") ?: JSONObject()).put("tiers", tiers)
+            .put("pay_to", c.optJSONObject("pay_to") ?: JSONObject()).put("policy", c.optJSONObject("policy") ?: JSONObject()).put("tiers", tiers)
         if (st == "trial") o.put("trial_left", maxOf(0L, (data.optLong("trial_end") - System.currentTimeMillis()) / 1000L))
         val code = data.optString("code")
         if (code.isNotEmpty()) o.put("code", code)
@@ -249,6 +249,18 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
                 }
             }
         }
+    }
+
+    fun redeem(phone: String, code: String) {
+        val p = normPhone(phone)
+        call("/redeem", JSONObject().put("phone", p).put("device_id", deviceId).put("code", code.trim()))
+        synchronized(this) {
+            data.put("mode", "paid").put("phone", p).put("token", "").remove("tier")
+            data.remove("pending_tier")
+            verified = null
+            save()
+        }
+        refresh()
     }
 
     fun move(phone: String, recovery: String) {
