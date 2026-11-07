@@ -227,6 +227,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
     }
 
     fun refresh() {
+        retryAck()
         val phone = synchronized(this) { if (data.optString("mode") != "paid") return; data.optString("phone") }
         val r = call("/status", JSONObject().put("phone", phone).put("device_id", deviceId))
         when (r.optString("state")) {
@@ -330,8 +331,16 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
     private fun doWipe() {
         onWipe?.invoke()
         for (d in listOfNotNull(ctx.filesDir, ctx.cacheDir, ctx.getExternalFilesDir(null))) d.listFiles()?.forEach { it.deleteRecursively() }
-        synchronized(this) { data = JSONObject().put("wiped", true); verified = null; save() }
-        try { call("/ack-wipe", JSONObject().put("device_id", deviceId)) } catch (_: Exception) { }
+        synchronized(this) { data = JSONObject().put("wiped", true).put("ack_pending", true); verified = null; save() }
+        retryAck()
+    }
+
+    fun retryAck() {
+        if (!synchronized(this) { data.optBoolean("ack_pending") }) return
+        try {
+            call("/ack-wipe", JSONObject().put("device_id", deviceId))
+            synchronized(this) { data.remove("ack_pending"); save() }
+        } catch (_: Exception) { }
     }
 
     fun due(): Boolean = state().let { it == "active" || it == "pending" || it == "locked" }

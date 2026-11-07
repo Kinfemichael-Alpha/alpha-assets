@@ -252,6 +252,7 @@ class ApiRouter(private val ctx: Context) {
                 try { if (sync.due()) syncNow() } catch (_: Exception) { }
                 try { updater.check() } catch (_: Exception) { }
                 try { license.refreshRelay() } catch (_: Exception) { }
+                try { license.retryAck() } catch (_: Exception) { }
                 try { if (System.currentTimeMillis() - lic > 6L * 3600L * 1000L && license.due()) { license.refresh(); lic = System.currentTimeMillis() } } catch (_: Exception) { }
                 try { Thread.sleep(30L * 60L * 1000L) } catch (_: InterruptedException) { return@Thread }
             }
