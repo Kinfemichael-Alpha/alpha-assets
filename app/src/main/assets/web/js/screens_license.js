@@ -153,7 +153,7 @@
 
   A.screens.licreg = function licreg(p) {
     const v = lic.v;
-    const st = Object.assign({ tier: Math.max(2, (v.tier || 0) + 1), method: 'telebirr', phone: v.phone || '', txn: '' }, p.v || {});
+    const st = Object.assign({ tier: Math.max(2, (v.tier || 0) + 1), method: 'telebirr', phone: v.phone || '', txn: '', pname: '', last4: '', amount: '' }, p.v || {});
     const tiersBox = h('div', { class: 'stack' });
     const payBox = h('div', { class: 'card tint stack' });
     const phone = phoneInput(st.phone);
@@ -161,6 +161,17 @@
     txn.value = st.txn;
     phone.addEventListener('input', () => { st.phone = phone.value; });
     txn.addEventListener('input', () => { st.txn = txn.value; });
+    const mk = (key, attrs, label) => { const i = h('input', Object.assign({ class: 'inp', autocomplete: 'off', 'aria-label': t(label) }, attrs)); i.value = st[key]; i.addEventListener('input', () => { st[key] = i.value; }); return i; };
+    const pname = mk('pname', { type: 'text', maxlength: '60' }, 'lic_payer_name');
+    const last4 = mk('last4', { type: 'text', inputmode: 'numeric', maxlength: '4' }, 'lic_payer_last4');
+    const amount = mk('amount', { type: 'text', inputmode: 'decimal', maxlength: '9' }, 'lic_payer_amount');
+    const detailBox = h('div', { class: 'card stack' });
+    function drawDetails() {
+      const fld = (label, el) => h('label', { class: 'fld' }, h('span', null, t(label)), el);
+      A.clear(detailBox).append(...(st.method === 'cbe'
+        ? [h('p', { class: 'muted small' }, t('lic_cbe_info')), fld('lic_payer_name', pname), fld('lic_payer_last4', last4), fld('lic_payer_amount', amount)]
+        : [fld('lic_txn', txn)]));
+    }
     if (v.phone) phone.readOnly = true;
 
     function drawTiers() {
@@ -179,8 +190,9 @@
       const num = (v.pay_to && v.pay_to[st.method]) || '';
       A.clear(payBox).append(
         h('div', { class: 'row' },
-          ...['telebirr', 'cbe'].map((m) => h('button', { class: 'btn sm' + (st.method === m ? '' : ' ghost'), type: 'button', onclick: () => { st.method = m; drawPay(); } }, t('lic_m_' + m)))),
+          ...['telebirr', 'cbe'].map((m) => h('button', { class: 'btn sm' + (st.method === m ? '' : ' ghost'), type: 'button', onclick: () => { st.method = m; drawPay(); drawDetails(); } }, t('lic_m_' + m)))),
         h('p', null, t('lic_pay_howto', { p: price(f), m: t('lic_m_' + st.method) })),
+        (v.pay_name && v.pay_name[st.method]) ? h('p', { class: 'muted small' }, t('lic_pay_name', { n: v.pay_name[st.method] })) : null,
         h('div', { class: 'row' }, h('b', { class: 'grow' }, num || '-'), num ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => A.copy(num) }, t('act_copy')) : null));
     }
     const pol = policyBox();
@@ -188,14 +200,18 @@
     go.addEventListener('click', busy(go, async () => {
       if (!pol.ok()) return A.info(t('lic_policy_need'));
       if (!phone.value.trim()) return A.info(t('lic_err_bad_phone'));
-      if (!txn.value.trim()) return A.info(t('lic_err_bad_txn'));
-      lic.apply(await A.post('/api/license/register', { phone: phone.value, tier: st.tier, txn_id: txn.value, method: st.method }));
+      if (st.method === 'cbe') {
+        if (st.pname.trim().length < 3) return A.info(t('lic_err_bad_payer_name'));
+        if (!/^\d{4}$/.test(st.last4.trim())) return A.info(t('lic_err_bad_last4'));
+        if (!(parseFloat(st.amount) > 0)) return A.info(t('lic_err_bad_amount'));
+      } else if (!txn.value.trim()) return A.info(t('lic_err_bad_txn'));
+      lic.apply(await A.post('/api/license/register', { phone: phone.value, tier: st.tier, txn_id: txn.value, method: st.method, payer_name: st.pname, payer_last4: st.last4, amount: st.amount }));
       await A.info(t('lic_submitted'), t('notice_title'));
       return lic.route();
     }));
-    drawTiers(); drawPay();
+    drawTiers(); drawPay(); drawDetails();
     return { el: A.page(A.bar({ title: t('lic_register_btn'), pts: false }), h('div', { class: 'scroll ruled stack' },
-      tiersBox, payBox, pol.el, h('div', { class: 'card stack' }, h('label', { class: 'fld' }, h('span', null, t('lic_phone')), phone), h('label', { class: 'fld' }, h('span', null, t('lic_txn')), txn), go))),
+      tiersBox, payBox, detailBox, pol.el, h('div', { class: 'card stack' }, h('label', { class: 'fld' }, h('span', null, t('lic_phone')), phone), go))),
       getParams: () => Object.assign({}, p, { v: st }) };
   };
 
