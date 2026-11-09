@@ -2,18 +2,27 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ALPHA AI Privacy Policy</title>
 <style>body{font:16px/1.6 system-ui,sans-serif;max-width:720px;margin:0 auto;padding:20px;color:#111}h1{font-size:26px}h2{font-size:19px;margin-top:28px}</style></head><body>
 <h1>ALPHA AI Privacy Policy</h1>
-<p>Last updated: 4 November 2026</p>
+<p>Last updated: 9 November 2026</p>
 <p>ALPHA AI (ALPHA Educational Hub) is a study app for students, developed by Kinfemichael. This page explains what information the app uses and why.</p>
 
-<h2>No accounts</h2>
-<p>The app has no sign-up or login. We do not run a server that stores your personal data. Everything you create in the app stays on your phone.</p>
+<h2>Accounts and paid levels</h2>
+<p>You can use the free level without an account. A trial or a paid level needs your Ethiopian phone number. For these we run a small server (hosted on Cloudflare) that stores:</p>
+<ul>
+<li>your phone number and a code derived from your phone's Android ID (not the ID itself), so one account works on one phone at a time;</li>
+<li>your level and when it was activated;</li>
+<li>your payment details so we can check them against our bank and Telebirr messages: the payment method, and either the Telebirr transaction ID or, for CBE, the sender name, the last 4 digits of the sending account and the amount, plus the time;</li>
+<li>a recovery code (kept only in hashed form after you have seen it), invite codes you used, and trial use;</li>
+<li>for the highest level, a count of AI requests per day.</li>
+</ul>
+<p>We use this only to run accounts, confirm payments, prevent sharing and abuse, and answer your questions. We do not sell it. New payment requests are sent to the developer through a private Telegram bot. When you move your account to a new phone, the old phone is signed out and the app deletes its downloaded files and data. We keep account and payment records while the account exists and as long as needed to settle payment questions.</p>
 
 <h2>Information stored on your phone</h2>
 <p>Your nickname (optional), settings, chats, saved chats, quizzes, notes, quiz progress, downloaded books and AI models, and your points balance are stored only on your device. You can delete them at any time from the app, or by clearing the app's data or uninstalling it.</p>
 
 <h2>AI chat, quizzes and notes</h2>
 <p><b>Offline AI:</b> when you use a model downloaded to your phone, your text is processed on the phone and is not sent anywhere.</p>
-<p><b>Online AI:</b> when you choose an online provider (for example Google Gemini, OpenAI, Anthropic, Groq, OpenRouter, Mistral, DeepSeek, Together AI or a custom address), the app sends your messages and the recent conversation to that provider using the API key you entered. The provider processes the data under its own privacy policy. Your API key is stored only on your phone and is sent only to the provider you selected. Please do not enter sensitive personal information into AI chats.</p>
+<p><b>Online AI with our keys (highest level):</b> your requests are passed through our server to the AI provider (for example Google Gemini, Groq or Mistral) using keys we provide. We do not store the text of your messages; we only count requests.</p>
+<p><b>Online AI with your own key:</b> when you choose an online provider (for example Google Gemini, OpenAI, Anthropic, Groq, OpenRouter, Mistral, DeepSeek, Together AI or a custom address), the app sends your messages and the recent conversation to that provider using the API key you entered. The provider processes the data under its own privacy policy. Your API key is stored only on your phone and is sent only to the provider you selected. Please do not enter sensitive personal information into AI chats.</p>
 
 <h2>Photos, camera and text reading</h2>
 <p>If you attach a photo or take one with the camera in the AI chat, the app reads the text in the picture on your phone (using the Tesseract text-recognition engine; its language data is downloaded once from GitHub). The picture and text stay on your phone unless you are using an online AI provider; in that case the extracted text is sent to the provider as part of your message. The camera is used only when you tap the camera button, and the app does not keep pictures after processing.</p>
@@ -22,7 +31,7 @@
 <p>Translation is done on your phone with a translation model you download. Text you translate is not sent anywhere. Model files are downloaded from the address you or the app's resource list provide.</p>
 
 <h2>Downloads and resource lists</h2>
-<p>When you download books, past exams, generated questions, generated notes, translation models or AI models, or when the app refreshes its list of resources (about once a day), it connects to public hosting services such as Hugging Face and GitHub. Those services may see your IP address as in any web request. Downloaded files and your exam history and progress are stored only on your phone.</p>
+<p>When you download books, past exams, generated questions, generated notes, translation models or AI models, or when the app refreshes its list of resources (about once a day), it connects to public hosting services such as Hugging Face and GitHub. Those services may see your IP address as in any web request. Generated exams and notes for paid levels are downloaded through our server, which checks your account first. Downloaded files and your exam history and progress are stored only on your phone.</p>
 
 <h2>Advertising</h2>
 <p>The app shows ads provided by Google AdMob. AdMob may collect and use device information such as your advertising ID, IP address and app interaction data to show and measure ads, according to Google's privacy policy (https://policies.google.com/privacy). The app is intended for users aged 13 and over. You can reset or delete your advertising ID, or opt out of personalised ads, in your Android settings. You can earn points by watching optional rewarded ads and use them to pause ads for a short time or to speed up offline AI.</p>
@@ -31,7 +40,7 @@
 <p>The app uses the Internet and network-state permissions to reach AI providers, download files and decide whether to show ads. It opens files and pictures you choose through the Android file picker or the camera (the camera picture is taken by your camera app, and the app asks for no separate camera permission), and opens phone, email or Telegram only when you tap a contact button.</p>
 
 <h2>Deleting your data</h2>
-<p>Because everything is stored on your phone, you can delete it by using the delete options inside the app, by clearing the app storage in Android settings, or by uninstalling the app. We hold no copy of your data and have nothing to delete on a server. To ask about data held by AdMob or an AI provider, contact them directly.</p>
+<p>Data on your phone can be deleted from inside the app, by clearing the app storage, or by uninstalling the app. To have your account and payment records on our server deleted, write to the contact address below from the phone number you registered with; we will remove them, except where we must keep a payment record to settle a dispute. To ask about data held by AdMob or an AI provider, contact them directly.</p>
 
 <h2>Children</h2>
 <p>The app is not directed to children under 13 and we do not knowingly collect personal information from them.</p>
