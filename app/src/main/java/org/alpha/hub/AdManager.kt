@@ -28,9 +28,9 @@ interface AdBridge {
 }
 
 object AdUnits {
-    const val BANNER = "ca-app-pub-3940256099942544/6300978111"
-    const val INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"
-    const val REWARDED = "ca-app-pub-3940256099942544/5224354917"
+    const val BANNER = "ca-app-pub-3248830409724448/5393884670"
+    const val INTERSTITIAL = "ca-app-pub-3248830409724448/8098892883"
+    const val REWARDED = "ca-app-pub-3248830409724448/1454639667"
 }
 
 class AdManager(private val act: Activity, private val container: FrameLayout, private val settings: SettingsStore) : AdBridge {

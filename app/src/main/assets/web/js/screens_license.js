@@ -3,7 +3,7 @@
   const A = window.A, h = A.h, t = A.t;
   const lic = (A.lic = { v: null, timer: null, trialEnd: 0, tick: 0 });
   const GATED = ['none', 'trial_expired', 'locked'];
-  const OWN = ['license', 'licreg', 'lictrial', 'licredeem', 'licmove', 'licpending', 'liccode'];
+  const OWN = ['license', 'licreg', 'lictrial', 'licredeem', 'liccheck', 'licmove', 'licpending', 'liccode'];
 
   A.can = (k) => !!(lic.v && lic.v.features && lic.v.features[k]);
   A.hasAI = () => A.can('ai_offline') || A.can('ai_online');
@@ -31,6 +31,10 @@
     if (v.wiped) {
       try { lic.apply(await A.post('/api/license/ack_notice')); } catch (e) { }
       await A.info(t('lic_wiped'), t('notice_title'));
+    }
+    if (lic.v.rejected) {
+      try { lic.apply(await A.post('/api/license/ack_notice')); } catch (e) { }
+      await A.info(t('lic_rejected'), t('notice_title'));
     }
     if (lic.v.code) return A.go('liccode', {}, { root: true, force: true });
     if (GATED.includes(lic.v.state)) return A.go('license', {}, { root: true, force: true });
@@ -125,6 +129,7 @@
     }
     if (v.state === 'none') body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('lictrial') }, t('lic_trial_btn')));
     if (v.tier < 5 && v.state !== 'locked') body.append(h('button', { class: 'btn block', type: 'button', onclick: () => A.go('licreg') }, t('lic_register_btn')));
+    body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('liccheck') }, t('lic_check_pay_btn')));
     body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('licredeem') }, t('lic_redeem_btn')));
     body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('licmove') }, t('lic_move_btn')));
     body.append(h('h2', { class: 'h-sec' }, t('lic_levels')));
@@ -213,6 +218,18 @@
     return { el: A.page(A.bar({ title: t('lic_register_btn'), pts: false }), h('div', { class: 'scroll ruled stack' },
       tiersBox, payBox, detailBox, pol.el, h('div', { class: 'card stack' }, h('label', { class: 'fld' }, h('span', null, t('lic_phone')), phone), go))),
       getParams: () => Object.assign({}, p, { v: st }) };
+  };
+
+  A.screens.liccheck = function liccheck() {
+    const phone = phoneInput('');
+    const go = h('button', { class: 'btn block', type: 'button' }, t('lic_check_go'));
+    go.addEventListener('click', busy(go, async () => {
+      if (!phone.value.trim()) return A.info(t('lic_err_bad_phone'));
+      lic.apply(await A.post('/api/license/check', { phone: phone.value }));
+      return lic.route();
+    }));
+    return { el: A.page(A.bar({ title: t('lic_check_pay_btn'), pts: false }), h('div', { class: 'scroll ruled stack' },
+      h('div', { class: 'card stack' }, h('p', null, t('lic_check_info')), h('label', { class: 'fld' }, h('span', null, t('lic_phone')), phone), go))) };
   };
 
   A.screens.licredeem = function licredeem() {

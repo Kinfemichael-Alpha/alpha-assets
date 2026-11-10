@@ -116,6 +116,7 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/license/trial" -> { license.startTrial(b.optString("phone")); licenseDone() }
         "POST /api/license/register" -> { license.register(b.optString("phone"), b.optInt("tier"), b.optString("txn_id"), b.optString("method"), b.optString("payer_name"), b.optString("payer_last4"), b.optString("amount")); licenseDone() }
         "POST /api/license/refresh" -> { license.refresh(); licenseDone() }
+        "POST /api/license/check" -> { license.checkPayment(b.optString("phone")); licenseDone() }
         "POST /api/license/redeem" -> { license.redeem(b.optString("phone"), b.optString("code")); licenseDone() }
         "POST /api/license/move" -> { license.move(b.optString("phone"), b.optString("recovery_code")); licenseDone() }
         "POST /api/license/ack_code" -> { license.ackCode(); license.view() }

@@ -161,6 +161,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         val code = data.optString("code")
         if (code.isNotEmpty()) o.put("code", code)
         if (data.optBoolean("wiped")) o.put("wiped", true)
+        if (data.optBoolean("rejected")) o.put("rejected", true)
         return o
     }
 
@@ -232,6 +233,11 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         val r = call("/status", JSONObject().put("phone", phone).put("device_id", deviceId))
         when (r.optString("state")) {
             "wipe" -> doWipe()
+            "rejected" -> synchronized(this) {
+                data.remove("mode"); data.remove("token"); data.remove("tier"); data.remove("phone"); data.remove("pending_tier")
+                data.put("rejected", true)
+                verified = null; save()
+            }
             "other_device", "none" -> synchronized(this) {
                 data.remove("mode"); data.remove("token"); data.remove("tier"); data.remove("phone"); data.remove("pending_tier")
                 verified = null; save()
@@ -249,6 +255,22 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
                     save()
                 }
             }
+        }
+    }
+
+    fun checkPayment(phone: String) {
+        val p = normPhone(phone)
+        val r = call("/status", JSONObject().put("phone", p).put("device_id", deviceId))
+        when (r.optString("state")) {
+            "pending", "active" -> {
+                synchronized(this) {
+                    if (data.optString("mode") != "paid") { data.put("mode", "paid").put("phone", p).put("token", "").remove("tier"); verified = null; save() }
+                }
+                if (r.optString("state") == "active") refresh()
+            }
+            "rejected" -> throw ApiError(404, "lic_err_payment_rejected")
+            "other_device" -> throw ApiError(409, "lic_err_other_device")
+            else -> throw ApiError(404, "lic_err_no_payment")
         }
     }
 
@@ -330,7 +352,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
 
     fun ackCode() { synchronized(this) { data.remove("code"); save() } }
 
-    fun ackNotice() { synchronized(this) { data.remove("wiped"); save() } }
+    fun ackNotice() { synchronized(this) { data.remove("wiped"); data.remove("rejected"); save() } }
 
     private fun doWipe() {
         onWipe?.invoke()
