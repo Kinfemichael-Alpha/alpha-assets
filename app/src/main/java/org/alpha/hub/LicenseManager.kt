@@ -62,7 +62,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         .put("ai_offline", t >= 2)
         .put("ai_online", t >= 2)
         .put("generated", t >= 3)
-        .put("daily_questions", if (t >= 3) 100 else 0)
+        .put("daily_questions", 0)
         .put("custom", t >= 5)
         .put("key_mode", if (t >= 5) "ours" else if (t >= 2) "own" else "none")
 
@@ -303,7 +303,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
 
     fun quotaUse(subject: String, want: Int): JSONObject {
         val limit = features(tier().coerceAtLeast(0)).optInt("daily_questions", 0)
-        if (limit <= 0) throw ApiError(403, "tier_required")
+        if (limit <= 0) return JSONObject().put("granted", maxOf(want, 0)).put("left", 0).put("limit", 0)
         val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
         val key = subject.trim().lowercase().ifEmpty { "-" }
         synchronized(this) {
