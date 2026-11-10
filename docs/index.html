@@ -104,7 +104,7 @@ sh:"መተግበሪያውን ይመልከቱ",sl:"ከመተግበሪያው ስ�
 lh:"ደረጃዎን ይምረጡ",ll:"በነጻ ይጀምሩ፤ ሲፈልጉ ያሻሽሉ።",ln:"በመተግበሪያው ውስጥ በCBE ወይም በቴሌብር ይክፈሉ። ክፍያው ከተረጋገጠ በኋላ ደረጃዎ ይነቃል። አንድ አካውንት በአንድ ጊዜ በአንድ ስልክ ላይ ይሰራል።",ch:"የቴሌግራም ቻናል",gr:"የቴሌግራም ግሩፕ",pv:"የግላዊነት ፖሊሲ",tm:"ደንቦች",
 view:"ያለፉ ፈተናዎችን ማንበብ",exam:"ያለፉ ፈተናዎች እንደ እውነተኛ ፈተና",off:"ያለ ኢንተርኔት AI",on:"ኦንላይን AI",gen:"የተፈጠሩ ፈተናዎችና ማስታወሻዎች",cus:"በጥያቄ የሚሰሩ ፈተናዎችና ማስታወሻዎች",noads:"ማስታወቂያ የለም",ads:"ማስታወቂያ አለ",ours:"AI ቁልፍ በእኛ የቀረበ",own:"የራስዎን AI ቁልፍ ይጠቀሙ",free0:"ነጻ",etb:"ብር",lvl:"ደረጃ"}
 };
-let lang="en";try{lang=localStorage.getItem("alpha_lang")||(navigator.language||"").slice(0,2)==="am"?"am":"en"}catch(e){}
+let lang="en";try{lang=localStorage.getItem("alpha_lang")||((navigator.language||"").slice(0,2)==="am"?"am":"en")}catch(e){}
 let tiers=null;
 const FALLBACK={0:{name:"Free",price:0,past_papers:"view",ads:true},2:{name:"First",price:50,past_papers:"exam",ai_offline:true,ai_online:true,ads:true,key_mode:"own"},3:{name:"Basic",price:100,past_papers:"exam",ai_offline:true,ai_online:true,generated:true,ads:true,key_mode:"own"},4:{name:"Full",price:150,past_papers:"exam",ai_offline:true,ai_online:true,generated:true,ads:true,key_mode:"own"},5:{name:"Ultimate",price:250,past_papers:"exam",ai_offline:true,ai_online:true,generated:true,custom:true,ads:false,key_mode:"ours"}};
 function bullets(f,x){const o=[];o.push(f.past_papers==="exam"?x.exam:x.view);if(f.ai_offline)o.push(x.off);if(f.ai_online)o.push(x.on);if(f.generated)o.push(x.gen);if(f.custom)o.push(x.cus);o.push(f.ads===false?x.noads:x.ads);if(f.key_mode==="ours")o.push(x.ours);else if(f.key_mode==="own")o.push(x.own);return o}
