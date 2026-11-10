@@ -3,7 +3,7 @@
   const A = window.A, h = A.h, t = A.t;
   const lic = (A.lic = { v: null, timer: null, trialEnd: 0, tick: 0 });
   const GATED = ['none', 'trial_expired', 'locked'];
-  const OWN = ['license', 'licreg', 'lictrial', 'licredeem', 'liccheck', 'licmove', 'licpending', 'liccode'];
+  const OWN = ['license', 'licreg', 'lictrial', 'licredeem', 'liccheck', 'licmove', 'licpending', 'liccode', 'licnotice'];
 
   A.can = (k) => !!(lic.v && lic.v.features && lic.v.features[k]);
   A.hasAI = () => A.can('ai_offline') || A.can('ai_online');
@@ -36,6 +36,7 @@
       try { lic.apply(await A.post('/api/license/ack_notice')); } catch (e) { }
       await A.info(t('lic_rejected'), t('notice_title'));
     }
+    if (!lic.v.notice && GATED.includes(lic.v.state)) return A.go('licnotice', {}, { root: true, force: true });
     if (lic.v.code) return A.go('liccode', {}, { root: true, force: true });
     if (GATED.includes(lic.v.state)) return A.go('license', {}, { root: true, force: true });
     if (lic.v.state === 'pending') return A.go('licpending', {}, { root: true, force: true });
@@ -99,9 +100,10 @@
     return { el: box, ok: () => cb.checked };
   }
 
-  function busy(btn, fn) {
+  function busy(btn, fn, local) {
     return async () => {
       if (btn.disabled) return;
+      if (!local && navigator.onLine === false) return A.info(t('lic_offline'), t('notice_title'));
       btn.disabled = true;
       try { await fn(); } catch (e) { await A.info((e && e.message) || t('err_server')); } finally { btn.disabled = false; }
     };
@@ -124,7 +126,7 @@
     }
     if (v.state !== 'locked' && (v.state === 'none' || v.state === 'trial_expired')) {
       const f = h('button', { class: 'btn block', type: 'button' }, t('lic_continue_free'));
-      f.addEventListener('click', busy(f, async () => { lic.apply(await A.post('/api/license/free')); return lic.route(); }));
+      f.addEventListener('click', busy(f, async () => { lic.apply(await A.post('/api/license/free')); return lic.route(); }, true));
       body.append(f);
     }
     if (v.state === 'none') body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('lictrial') }, t('lic_trial_btn')));
@@ -220,6 +222,20 @@
       getParams: () => Object.assign({}, p, { v: st }) };
   };
 
+  A.screens.licnotice = function licnotice() {
+    const days = (lic.v && lic.v.offline_days) || 7;
+    const secs = [1, 2, 3, 4, 5].map((n) => h('div', { class: 'card stack' }, h('b', null, t('notice_h' + n)), h('p', { class: 'small', style: { whiteSpace: 'pre-line' } }, t('notice_p' + n, { d: days }))));
+    const cb = h('input', { type: 'checkbox', 'aria-label': t('notice_agree') });
+    const go = h('button', { class: 'btn block', type: 'button', disabled: true }, t('notice_next'));
+    cb.addEventListener('change', () => { go.disabled = !cb.checked; });
+    go.addEventListener('click', busy(go, async () => {
+      lic.apply(await A.post('/api/license/notice_ok'));
+      return lic.route();
+    }, true));
+    return { el: A.page(A.bar({ title: t('notice_title'), back: false, pts: false }), h('div', { class: 'scroll ruled stack' },
+      ...secs, h('label', { class: 'row card' }, cb, h('span', { class: 'grow' }, t('notice_agree'))), go)) };
+  };
+
   A.screens.liccheck = function liccheck() {
     const phone = phoneInput('');
     const go = h('button', { class: 'btn block', type: 'button' }, t('lic_check_go'));
@@ -295,7 +311,7 @@
       if (!(await A.confirm(t('lic_code_confirm')))) return null;
       lic.apply(await A.post('/api/license/ack_code'));
       return lic.route();
-    }));
+    }, true));
     return { el: A.page(A.bar({ title: t('lic_code_title'), back: false, pts: false }), h('div', { class: 'scroll ruled stack' },
       h('div', { class: 'card stack' }, h('p', null, t('lic_code_info')),
         h('div', { class: 'h-sec', style: { fontSize: '30px', textAlign: 'center', letterSpacing: '3px', userSelect: 'all' } }, code),

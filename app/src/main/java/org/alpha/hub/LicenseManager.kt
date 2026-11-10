@@ -161,6 +161,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         val code = data.optString("code")
         if (code.isNotEmpty()) o.put("code", code)
         if (data.optBoolean("wiped")) o.put("wiped", true)
+        if (data.optBoolean("notice")) o.put("notice", true)
         if (data.optBoolean("rejected")) o.put("rejected", true)
         return o
     }
@@ -351,6 +352,8 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
     }
 
     fun ackCode() { synchronized(this) { data.remove("code"); save() } }
+
+    fun noticeOk() { synchronized(this) { data.put("notice", true); save() } }
 
     fun ackNotice() { synchronized(this) { data.remove("wiped"); data.remove("rejected"); save() } }
 
