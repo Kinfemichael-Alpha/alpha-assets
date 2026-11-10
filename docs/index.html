@@ -1,19 +1,129 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ALPHA AI</title>
-<style>body{font:16px/1.6 system-ui,sans-serif;max-width:720px;margin:0 auto;padding:20px;color:#111}h1{font-size:28px}h2{font-size:19px;margin-top:28px}.dl{display:block;text-align:center;background:#1a56db;color:#fff;text-decoration:none;font-weight:600;padding:16px;border-radius:12px;margin:20px 0}small{color:#555}</style></head><body>
-<h1>ALPHA AI</h1>
-<p>A study companion for Ethiopian students: past exams, books, AI help, quizzes and notes, in English and Amharic.</p>
-<a class="dl" href="https://github.com/Kinfemichael-Alpha/alpha-assets/releases/download/latest/alpha-ai.apk">Download for Android (APK)</a>
-<small>Android phones only. Always download from this page.</small>
-<h2>How to install</h2>
-<ol>
-<li>Tap the download button and wait for the file to finish.</li>
-<li>Open the downloaded file. If Android says installing from this source is blocked, tap Settings and allow it for your browser or file manager.</li>
-<li>Tap Install, then open ALPHA AI.</li>
-<li>Choose the free level, a 5-minute trial, or a paid level. The app tells you how to pay and what to enter.</li>
-</ol>
-<p>The app tells you when a new version is ready. To update, download it again from this page and install it over the old one.</p>
-<h2>Help and news</h2>
-<ul><li><a href="https://t.me/alpha_ai_tools_and_assets">Telegram channel</a></li><li><a href="https://t.me/+-2i0ukGVbjcwOWQ8">Telegram group</a></li></ul>
-<ul><li><a href="privacy.html">Privacy Policy</a></li><li><a href="terms.html">Terms and Conditions</a></li></ul>
-<p>Contact: kinfemichaelsemagnatanaw@gmail.com</p></body></html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ALPHA AI - Study app for Ethiopian students</title>
+<meta name="description" content="ALPHA AI: past national exams, AI tutor, quizzes, notes, books and translation for Ethiopian students, in English and Amharic.">
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#0f1a2e;--mute:#55627a;--line:#e1e6f0;--brand:#2a7de1;--brand2:#5ba0ee;--soft:#e8f1fd}
+@media (prefers-color-scheme:dark){:root{--bg:#0a1020;--card:#121a30;--ink:#eef2fb;--mute:#9aa8c4;--line:#222d4a;--brand:#4b94f0;--brand2:#6aaaf5;--soft:#16233f}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Noto Sans Ethiopic","Segoe UI",Roboto,sans-serif}
+a{color:var(--brand)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+.hero{background:linear-gradient(135deg,#1f6fd6,#5ba0ee);color:#fff;padding:20px 0 56px;border-radius:0 0 32px 32px}
+nav{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:18px}
+.lang{background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:999px;padding:8px 16px;font:600 15px inherit;font-family:inherit;cursor:pointer}
+.heroGrid{display:grid;gap:28px;align-items:center;margin-top:28px}
+h1{font-size:clamp(30px,6vw,48px);line-height:1.15;margin:0 0 12px}
+.hero p{font-size:18px;margin:0 0 22px;opacity:.95;max-width:520px}
+.btn{display:inline-block;background:#fff;color:#1a5fc0;font-weight:700;text-decoration:none;padding:15px 26px;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.sub{display:block;margin-top:10px;font-size:14px;opacity:.9}
+.phone{background:#0b1220;border-radius:30px;padding:8px;box-shadow:0 18px 40px rgba(0,0,0,.28);width:min(240px,62vw);margin:0 auto}
+.phone img{display:block;width:100%;border-radius:23px}
+.heroPhone{transform:rotate(3deg)}
+section{padding:44px 0 0}
+h2{font-size:28px;margin:0 0 6px}
+.lead{color:var(--mute);margin:0 0 22px}
+.feat{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.f{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+.f b{display:block;font-size:17px;margin-bottom:4px}.f span{color:var(--mute);font-size:15px}
+.shots{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 4px 20px;-webkit-overflow-scrolling:touch}
+.shots .phone{flex:0 0 auto;width:200px;scroll-snap-align:center;margin:0}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px 14px 58px;position:relative}
+.steps li:before{content:counter(s);position:absolute;left:14px;top:12px;width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;font-weight:700;display:grid;place-items:center}
+.lv{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.l{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+.l h3{margin:0;font-size:18px}.price{font-size:26px;font-weight:800;color:var(--brand);margin:4px 0 8px}
+.l ul{margin:0;padding-left:18px;color:var(--mute);font-size:15px}
+.note{background:var(--soft);border-radius:16px;padding:14px 16px;margin-top:14px;font-size:15px}
+.cta{text-align:center;padding:40px 0}
+.cta .btn{background:var(--brand);color:#fff}
+footer{border-top:1px solid var(--line);padding:22px 0 40px;color:var(--mute);font-size:14px;text-align:center}
+footer a{margin:0 8px}
+@media (min-width:820px){.heroGrid{grid-template-columns:1.1fr .9fr}.shots{justify-content:center;overflow:visible}.shots .phone{width:220px}}
+</style></head><body>
+
+<header class="hero"><div class="wrap">
+<nav><span>ALPHA AI</span><button class="lang" id="lang" type="button">አማርኛ</button></nav>
+<div class="heroGrid"><div>
+<h1 data-k="h1">Study smarter for your national exam</h1>
+<p data-k="sub">Past national exams, an AI tutor, quizzes, notes and textbooks. In English and Amharic, on your phone.</p>
+<a class="btn" id="dl" href="https://github.com/Kinfemichael-Alpha/alpha-assets/releases/download/latest/alpha-ai.apk" data-k="dl">Download for Android</a>
+<span class="sub" data-k="free">Free to start. Android 7.0 or newer.</span>
+</div><div class="phone heroPhone"><img src="shots/home.jpg" alt="ALPHA AI home screen" width="400" height="1046"></div></div>
+</div></header>
+
+<main class="wrap">
+<section><h2 data-k="fh">What you get</h2><p class="lead" data-k="fl">Everything a student needs in one app.</p>
+<div class="feat">
+<div class="f"><b data-k="f1">Past national exams</b><span data-k="f1d">Real exam questions by subject and year, with your score and explanations.</span></div>
+<div class="f"><b data-k="f2">AI tutor</b><span data-k="f2d">Ask anything and get step-by-step answers, online or offline.</span></div>
+<div class="f"><b data-k="f3">Generated questions and notes</b><span data-k="f3d">Fresh practice questions and short notes for every subject.</span></div>
+<div class="f"><b data-k="f4">Quizzes</b><span data-k="f4d">Make a quiz on any topic and track your progress.</span></div>
+<div class="f"><b data-k="f5">Textbooks</b><span data-k="f5d">Download books for grades 1 to 12 and read them anytime.</span></div>
+<div class="f"><b data-k="f6">English and Amharic</b><span data-k="f6d">Read text from photos and translate between both languages.</span></div>
+</div></section>
+
+<section><h2 data-k="sh">See it in action</h2><p class="lead" data-k="sl">Screens from the app.</p>
+<div class="shots">
+<div class="phone"><img src="shots/chat.jpg" alt="AI chat explaining photosynthesis" width="400" height="817" loading="lazy"></div>
+<div class="phone"><img src="shots/exams.jpg" alt="Past exams by subject" width="400" height="1051" loading="lazy"></div>
+<div class="phone"><img src="shots/books.jpg" alt="Books library by grade" width="400" height="833" loading="lazy"></div>
+</div></section>
+
+<section><h2 data-k="ih">Install in 4 steps</h2><p class="lead" data-k="il">No Play Store needed.</p>
+<ol class="steps">
+<li data-k="i1">Tap "Download for Android" and wait for the file to finish.</li>
+<li data-k="i2">Open the downloaded file. If Android says installing from this source is blocked, tap Settings and allow it for your browser.</li>
+<li data-k="i3">Tap Install, then open ALPHA AI.</li>
+<li data-k="i4">Choose the free level, a 5-minute trial, or a paid level. The app shows how to pay.</li>
+</ol></section>
+
+<section><h2 data-k="lh">Choose your level</h2><p class="lead" data-k="ll">Start free and upgrade when you are ready.</p>
+<div class="lv" id="levels"></div>
+<div class="note" data-k="ln">Pay by CBE or Telebirr from the app. Your level is activated after the payment is checked. One account works on one phone at a time.</div>
+</section>
+
+<div class="cta"><a class="btn" href="https://github.com/Kinfemichael-Alpha/alpha-assets/releases/download/latest/alpha-ai.apk" data-k="dl">Download for Android</a></div>
+</main>
+
+<footer><div class="wrap">
+<a href="https://t.me/alpha_ai_tools_and_assets" data-k="ch">Telegram channel</a><a href="https://t.me/+-2i0ukGVbjcwOWQ8" data-k="gr">Telegram group</a><a href="privacy.html" data-k="pv">Privacy Policy</a><a href="terms.html" data-k="tm">Terms</a>
+<p>kinfemichaelsemagnatanaw@gmail.com</p></div></footer>
+
+<script>
+const T={
+en:{h1:"Study smarter for your national exam",sub:"Past national exams, an AI tutor, quizzes, notes and textbooks. In English and Amharic, on your phone.",dl:"Download for Android",free:"Free to start. Android 7.0 or newer.",fh:"What you get",fl:"Everything a student needs in one app.",
+f1:"Past national exams",f1d:"Real exam questions by subject and year, with your score and explanations.",f2:"AI tutor",f2d:"Ask anything and get step-by-step answers, online or offline.",f3:"Generated questions and notes",f3d:"Fresh practice questions and short notes for every subject.",f4:"Quizzes",f4d:"Make a quiz on any topic and track your progress.",f5:"Textbooks",f5d:"Download books for grades 1 to 12 and read them anytime.",f6:"English and Amharic",f6d:"Read text from photos and translate between both languages.",
+sh:"See it in action",sl:"Screens from the app.",ih:"Install in 4 steps",il:"No Play Store needed.",i1:"Tap \"Download for Android\" and wait for the file to finish.",i2:"Open the downloaded file. If Android says installing from this source is blocked, tap Settings and allow it for your browser.",i3:"Tap Install, then open ALPHA AI.",i4:"Choose the free level, a 5-minute trial, or a paid level. The app shows how to pay.",
+lh:"Choose your level",ll:"Start free and upgrade when you are ready.",ln:"Pay by CBE or Telebirr from the app. Your level is activated after the payment is checked. One account works on one phone at a time.",ch:"Telegram channel",gr:"Telegram group",pv:"Privacy Policy",tm:"Terms",
+view:"Past exams to read",exam:"Past exams as real tests",off:"Offline AI",on:"Online AI",gen:"Generated exams and notes",cus:"Custom exams and notes on request",noads:"No ads",ads:"With ads",ours:"AI key provided by us",own:"Use your own AI key",free0:"Free",etb:"ETB",lvl:"Level"},
+am:{h1:"ለብሔራዊ ፈተናዎ በብቃት ይዘጋጁ",sub:"ያለፉ ብሔራዊ ፈተናዎች፣ AI አስተማሪ፣ ጥያቄዎች፣ ማስታወሻዎችና መጻሕፍት። በእንግሊዝኛና በአማርኛ፣ በስልክዎ።",dl:"ለአንድሮይድ አውርድ",free:"በነጻ ይጀምሩ። አንድሮይድ 7.0 እና ከዚያ በላይ።",fh:"የሚያገኙት",fl:"አንድ ተማሪ የሚፈልገው ሁሉ በአንድ መተግበሪያ።",
+f1:"ያለፉ ብሔራዊ ፈተናዎች",f1d:"እውነተኛ የፈተና ጥያቄዎች በትምህርት አይነትና በዓመት፣ ከውጤትና ማብራሪያ ጋር።",f2:"AI አስተማሪ",f2d:"ማንኛውንም ይጠይቁ፤ ደረጃ በደረጃ መልስ ያግኙ፣ በኢንተርኔት ወይም ያለ ኢንተርኔት።",f3:"የተፈጠሩ ጥያቄዎችና ማስታወሻዎች",f3d:"ለእያንዳንዱ የትምህርት አይነት አዳዲስ ጥያቄዎችና አጫጭር ማስታወሻዎች።",f4:"ጥያቄዎች",f4d:"በማንኛውም ርዕስ ጥያቄ ይስሩ፤ እድገትዎን ይከታተሉ።",f5:"መጻሕፍት",f5d:"ከ1ኛ እስከ 12ኛ ክፍል መጻሕፍትን አውርደው በማንኛውም ጊዜ ያንብቡ።",f6:"እንግሊዝኛና አማርኛ",f6d:"ከፎቶ ጽሑፍ ያንብቡ፤ በሁለቱ ቋንቋዎች መካከል ይተርጉሙ።",
+sh:"መተግበሪያውን ይመልከቱ",sl:"ከመተግበሪያው ስክሪኖች።",ih:"በ4 ደረጃዎች ይጫኑ",il:"ፕሌይ ስቶር አያስፈልግም።",i1:"\"ለአንድሮይድ አውርድ\" ይንኩ፤ ፋይሉ እስኪጨርስ ይጠብቁ።",i2:"የወረደውን ፋይል ይክፈቱ። አንድሮይድ ከዚህ ምንጭ መጫንን ከከለከለ፣ Settings ይንኩና ለአሳሽዎ ይፍቀዱ።",i3:"Install ይንኩ፤ ከዚያ ALPHA AI ይክፈቱ።",i4:"ነጻውን ደረጃ፣ የ5 ደቂቃ ሙከራ ወይም የተከፈለ ደረጃ ይምረጡ። መተግበሪያው እንዴት እንደሚከፍሉ ያሳያል።",
+lh:"ደረጃዎን ይምረጡ",ll:"በነጻ ይጀምሩ፤ ሲፈልጉ ያሻሽሉ።",ln:"በመተግበሪያው ውስጥ በCBE ወይም በቴሌብር ይክፈሉ። ክፍያው ከተረጋገጠ በኋላ ደረጃዎ ይነቃል። አንድ አካውንት በአንድ ጊዜ በአንድ ስልክ ላይ ይሰራል።",ch:"የቴሌግራም ቻናል",gr:"የቴሌግራም ግሩፕ",pv:"የግላዊነት ፖሊሲ",tm:"ደንቦች",
+view:"ያለፉ ፈተናዎችን ማንበብ",exam:"ያለፉ ፈተናዎች እንደ እውነተኛ ፈተና",off:"ያለ ኢንተርኔት AI",on:"ኦንላይን AI",gen:"የተፈጠሩ ፈተናዎችና ማስታወሻዎች",cus:"በጥያቄ የሚሰሩ ፈተናዎችና ማስታወሻዎች",noads:"ማስታወቂያ የለም",ads:"ማስታወቂያ አለ",ours:"AI ቁልፍ በእኛ የቀረበ",own:"የራስዎን AI ቁልፍ ይጠቀሙ",free0:"ነጻ",etb:"ብር",lvl:"ደረጃ"}
+};
+let lang="en";try{lang=localStorage.getItem("alpha_lang")||(navigator.language||"").slice(0,2)==="am"?"am":"en"}catch(e){}
+let tiers=null;
+const FALLBACK={0:{name:"Free",price:0,past_papers:"view",ads:true},2:{name:"First",price:50,past_papers:"exam",ai_offline:true,ai_online:true,ads:true,key_mode:"own"},3:{name:"Basic",price:100,past_papers:"exam",ai_offline:true,ai_online:true,generated:true,ads:true,key_mode:"own"},4:{name:"Full",price:150,past_papers:"exam",ai_offline:true,ai_online:true,generated:true,ads:true,key_mode:"own"},5:{name:"Ultimate",price:250,past_papers:"exam",ai_offline:true,ai_online:true,generated:true,custom:true,ads:false,key_mode:"ours"}};
+function bullets(f,x){const o=[];o.push(f.past_papers==="exam"?x.exam:x.view);if(f.ai_offline)o.push(x.off);if(f.ai_online)o.push(x.on);if(f.generated)o.push(x.gen);if(f.custom)o.push(x.cus);o.push(f.ads===false?x.noads:x.ads);if(f.key_mode==="ours")o.push(x.ours);else if(f.key_mode==="own")o.push(x.own);return o}
+function draw(){
+  const x=T[lang];document.documentElement.lang=lang;
+  document.querySelectorAll("[data-k]").forEach(e=>{const v=x[e.dataset.k];if(v)e.textContent=v});
+  document.getElementById("lang").textContent=lang==="en"?"አማርኛ":"English";
+  const src=tiers||FALLBACK,box=document.getElementById("levels");box.textContent="";
+  Object.keys(src).map(Number).filter(n=>n!==1).sort().forEach(n=>{
+    const f=src[n];if(!f)return;
+    const d=document.createElement("div");d.className="l";
+    const h=document.createElement("h3");h.textContent=x.lvl+" "+n+": "+(f.name||"");
+    const p=document.createElement("div");p.className="price";p.textContent=Number(f.price)>0?f.price+" "+x.etb:x.free0;
+    const u=document.createElement("ul");bullets(f,x).forEach(b=>{const li=document.createElement("li");li.textContent=b;u.appendChild(li)});
+    d.append(h,p,u);box.appendChild(d);
+  });
+}
+document.getElementById("lang").onclick=()=>{lang=lang==="en"?"am":"en";try{localStorage.setItem("alpha_lang",lang)}catch(e){}draw()};
+draw();
+fetch("https://huggingface.co/datasets/Kinfemichael/Alpha-links/resolve/main/tiers.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.tiers){tiers=j.tiers;draw()}}).catch(()=>{});
+</script>
+</body></html>
