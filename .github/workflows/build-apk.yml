@@ -22,25 +22,32 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - name: Build debug APK
+      - name: Build APK
         env:
           ALPHA_BUILD_NUMBER: ${{ github.run_number }}
+          KEY_PASSWORD: ${{ secrets.ALPHA_KEYSTORE_PASSWORD }}
         run: |
           set -o pipefail
-          gradle :app:assembleDebug --no-daemon 2>&1 | tee build.log
+          if [ -n "$KEY_PASSWORD" ]; then
+            export ALPHA_KEYSTORE=alpha-release.p12 ALPHA_KEY_ALIAS=alpha ALPHA_STORE_PASSWORD="$KEY_PASSWORD" ALPHA_KEY_PASSWORD="$KEY_PASSWORD"
+            gradle :app:assembleRelease --no-daemon 2>&1 | tee build.log
+            cp app/build/outputs/apk/release/app-release.apk alpha-ai.apk
+          else
+            gradle :app:assembleDebug --no-daemon 2>&1 | tee build.log
+            cp app/build/outputs/apk/debug/app-debug.apk alpha-ai.apk
+          fi
       - name: Report errors
         if: failure()
         run: |
           grep -E "error:|e: |FAILED|What went wrong|CMake Error|ninja: |fatal|undefined reference|Execution failed|Could not" build.log | head -25 | cut -c1-400 | while IFS= read -r l; do echo "::error::$l"; done
       - uses: actions/upload-artifact@v4
         with:
-          name: alpha-ai-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: alpha-ai-apk
+          path: alpha-ai.apk
       - name: Publish APK to latest release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk alpha-ai.apk
           gh release view latest >/dev/null 2>&1 || gh release create latest --prerelease --title "Latest build" --notes "Newest debug APK. Download alpha-ai.apk below."
           gh release upload latest alpha-ai.apk --clobber
           echo "{\"version_code\":$((GITHUB_RUN_NUMBER + 100))}" > version.json
