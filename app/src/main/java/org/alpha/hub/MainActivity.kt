@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CrashLog.install(applicationContext)
         router = ApiRouter(applicationContext)
         router.onExit = { runOnUiThread { finishAffinity() } }
 

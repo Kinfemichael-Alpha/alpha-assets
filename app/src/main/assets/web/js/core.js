@@ -555,3 +555,8 @@
     });
   };
 })();
+
+(function () {
+  window.addEventListener('error', (e) => { try { window.A.lastError = String(e.message || '') + ' @' + String(e.filename || '').split('/').pop() + ':' + (e.lineno || 0); } catch (x) { } });
+  window.addEventListener('unhandledrejection', (e) => { try { window.A.lastError = 'promise: ' + String((e.reason && e.reason.message) || e.reason || ''); } catch (x) { } });
+})();

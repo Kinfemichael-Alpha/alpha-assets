@@ -79,6 +79,25 @@
   };
 
   /* ------------------------------------------------------------ መገናኛ */
+  A.screens.report = function report() {
+    const text = h('textarea', { class: 'inp', rows: '6', maxlength: '1500', placeholder: t('report_ph'), 'aria-label': t('report_title') });
+    const contact = h('input', { class: 'inp', type: 'text', maxlength: '80', placeholder: t('report_contact'), 'aria-label': t('report_contact') });
+    const go = h('button', { class: 'btn block', type: 'button' }, t('report_send'));
+    go.addEventListener('click', async () => {
+      if (go.disabled) return;
+      if (!text.value.trim()) return A.info(t('report_empty'));
+      if (navigator.onLine === false) return A.info(t('lic_offline'));
+      go.disabled = true;
+      try {
+        await A.post('/api/report/send', { text: text.value, contact: contact.value, js: A.lastError || '' });
+        await A.info(t('report_sent'));
+        A.back();
+      } catch (e) { await A.info(e.message); } finally { go.disabled = false; }
+    });
+    return { el: A.page(A.bar({ title: t('report_title') }), h('div', { class: 'scroll ruled stack' },
+      h('div', { class: 'card stack' }, h('p', { class: 'muted small' }, t('report_note')), text, contact, go))) };
+  };
+
   A.screens.contact = function contact() {
     const body = h('div', { class: 'stack' });
     async function open(kind, value) {
@@ -97,6 +116,9 @@
         ...rows(c, 'phone', t('call_me'), 'btn_call'),
         ...rows(c, 'telegram', t('telegram'), 'btn_telegram'),
         ...rows(c, 'email', t('email'), 'btn_email')),
+        h('div', { class: 'card' },
+          h('h1', { class: 'hello' }, t('report_title')),
+          h('div', { class: 'item' }, h('div', { class: 'grow' }, t('report_desc')), h('button', { class: 'btn sm', type: 'button', onclick: () => A.go('report') }, t('report_btn')))),
         h('div', { class: 'card' },
           h('h1', { class: 'hello' }, t('community_title')),
           ...[['channel', 'community_channel'], ['group', 'community_group']].map(([w, k]) => h('div', { class: 'item' },
@@ -133,6 +155,14 @@
     // ራስ-ሰር አቅጣጫ: የመጀመሪያ ጊዜ -> አማራጭ ቅጽል ስም ገጽ፣ ከዚያ በኋላ -> ዋና ገጽ
     await A.lic.route();
     A.lic.start();
+    try {
+      const pr = await A.get('/api/report/pending');
+      if (pr && pr.crash) {
+        if (await A.confirm(t('report_crash_ask'))) {
+          try { await A.post('/api/report/send', { crash: true }); await A.info(t('report_sent')); } catch (e) { await A.info(e.message); }
+        } else await A.post('/api/report/dismiss');
+      }
+    } catch (e) { }
     if (A.S.state.crash_model) {
       const name = A.S.state.crash_model;
       A.S.state.crash_model = '';

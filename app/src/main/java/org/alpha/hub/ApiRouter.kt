@@ -81,7 +81,7 @@ class ApiRouter(private val ctx: Context) {
     fun adsOn(): Boolean = license.adsOn()
 
     private val openPaths = setOf("/api/ping", "/api/state", "/api/i18n", "/api/profile", "/api/settings", "/api/settings/reset", "/api/exit",
-        "/api/contacts", "/api/contacts/open", "/api/community/open", "/api/ads/status", "/api/ads/banner", "/api/job", "/api/update", "/api/update/open")
+        "/api/contacts", "/api/contacts/open", "/api/community/open", "/api/ads/status", "/api/ads/banner", "/api/job", "/api/update", "/api/update/open", "/api/report/pending", "/api/report/send", "/api/report/dismiss")
     private val aiPaths = setOf("/api/ai/enter", "/api/ai/test", "/api/chat/send", "/api/chat/continue", "/api/chat/regenerate", "/api/chat/edit",
         "/api/translate", "/api/chat/translate", "/api/image/ocr", "/api/quiz/generate", "/api/notes/generate", "/api/provider/models")
 
@@ -111,6 +111,9 @@ class ApiRouter(private val ctx: Context) {
         "POST /api/quota/use" -> license.quotaUse(b.optString("subject"), b.optInt("count"))
         "GET /api/update" -> JSONObject().put("available", updater.available())
         "POST /api/update/open" -> updateOpen()
+        "GET /api/report/pending" -> JSONObject().put("crash", CrashLog.read(ctx) != null)
+        "POST /api/report/dismiss" -> { CrashLog.clear(ctx); JSONObject().put("ok", true) }
+        "POST /api/report/send" -> sendReport(b)
         "GET /api/license" -> license.view()
         "POST /api/license/free" -> { license.chooseFree(); licenseDone() }
         "POST /api/license/trial" -> { license.startTrial(b.optString("phone")); licenseDone() }
@@ -288,6 +291,28 @@ class ApiRouter(private val ctx: Context) {
             else -> Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("mailto:$value"))
         }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try { ctx.startActivity(i) } catch (e: Exception) { throw ApiError(500, "err_open_failed") }
+        return JSONObject().put("ok", true)
+    }
+
+    private fun sendReport(b: JSONObject): JSONObject {
+        val crash = if (b.optBoolean("crash")) CrashLog.read(ctx) else null
+        val text = (b.optString("text").trim() + (if (crash != null) "\n\n" + crash else "") + (if (b.optString("js").isNotEmpty()) "\n\nJS: " + b.optString("js").take(400) else "")).trim()
+        if (text.isEmpty()) throw ApiError(400, "report_empty")
+        val v = license.view()
+        val body = JSONObject().put("device_id", license.deviceId).put("kind", if (crash != null) "crash" else "user")
+            .put("text", text).put("contact", b.optString("contact").take(80)).put("app", APP_VERSION + "/" + (try { androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(ctx.packageManager.getPackageInfo(ctx.packageName, 0)) } catch (_: Exception) { 0L }))
+            .put("model", android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL).put("android", android.os.Build.VERSION.RELEASE + "/" + android.os.Build.VERSION.SDK_INT)
+            .put("state", v.optString("state")).put("tier", v.optInt("tier"))
+        val c = java.net.URL(LicenseManager.SERVER + "/report").openConnection() as java.net.HttpURLConnection
+        try {
+            c.requestMethod = "POST"; c.doOutput = true; c.connectTimeout = 12000; c.readTimeout = 15000
+            c.setRequestProperty("content-type", "application/json")
+            c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            val code = c.responseCode
+            if (code == 429) throw ApiError(429, "report_too_many")
+            if (code != 200) throw ApiError(502, "err_server")
+        } catch (e: ApiError) { throw e } catch (e: java.io.IOException) { throw ApiError(503, "online_no_internet") } finally { c.disconnect() }
+        if (crash != null) CrashLog.clear(ctx)
         return JSONObject().put("ok", true)
     }
 
