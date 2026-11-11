@@ -130,7 +130,11 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
             "trial" -> if (ok && now < data.optLong("trial_end")) "trial" else "trial_expired"
             "paid" -> {
                 val tk = data.optString("token")
-                if (tk.isEmpty()) "pending" else if (ok && tokenValid(tk, now)) "active" else "locked"
+                val ex = data.optLong("expires")
+                val over = ok && ex > 0 && now / 1000L > ex
+                if (tk.isEmpty()) (if (data.optBoolean("expired")) "expired" else "pending")
+                else if (over) "expired"
+                else if (ok && tokenValid(tk, now)) "active" else "locked"
             }
             else -> "none"
         }
@@ -139,7 +143,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
     @Synchronized
     fun tier(): Int = when (state()) {
         "active" -> verified?.third ?: -1
-        "free", "pending" -> 0
+        "free", "pending", "expired" -> 0
         "trial" -> 1
         else -> -1
     }
@@ -160,6 +164,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         if (st == "trial") o.put("trial_left", maxOf(0L, (data.optLong("trial_end") - System.currentTimeMillis()) / 1000L))
         val code = data.optString("code")
         if (code.isNotEmpty()) o.put("code", code)
+        if (data.optLong("expires") > 0) o.put("expires", data.optLong("expires"))
         if (data.optBoolean("wiped")) o.put("wiped", true)
         if (data.optBoolean("notice")) o.put("notice", true)
         if (data.optBoolean("rejected")) o.put("rejected", true)
@@ -220,7 +225,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         call("/register", JSONObject().put("phone", p).put("device_id", deviceId).put("tier", tier).put("txn_id", txn.trim()).put("method", method).put("payer_name", payerName.trim()).put("payer_last4", payerLast4.trim()).put("amount", amount.trim().toDoubleOrNull() ?: 0.0))
         synchronized(this) {
             if (st != "active") {
-                data.put("mode", "paid").put("phone", p).put("token", "").remove("tier")
+                data.put("mode", "paid").put("phone", p).put("token", "").remove("tier"); data.remove("expired")
                 verified = null
             }
             data.put("pending_tier", tier)
@@ -239,8 +244,15 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
                 data.put("rejected", true)
                 verified = null; save()
             }
+            "expired" -> synchronized(this) {
+                data.put("token", "").put("expired", true).put("expires", r.optLong("expires")).remove("tier")
+                verified = null; save()
+            }
+            "pending" -> synchronized(this) {
+                if (data.optBoolean("expired")) { data.remove("expired"); save() }
+            }
             "other_device", "none" -> synchronized(this) {
-                data.remove("mode"); data.remove("token"); data.remove("tier"); data.remove("phone"); data.remove("pending_tier")
+                data.remove("mode"); data.remove("token"); data.remove("tier"); data.remove("phone"); data.remove("pending_tier"); data.remove("expired"); data.remove("expires")
                 verified = null; save()
             }
             "active" -> {
@@ -249,7 +261,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
                 synchronized(this) {
                     val v = verifyToken(tk) ?: throw ApiError(502, "err_server")
                     verified = Triple(tk, v.first, v.second)
-                    data.put("token", tk).put("tier", v.second)
+                    data.put("token", tk).put("tier", v.second).put("expires", r.optLong("expires")).remove("expired")
                     if (data.optInt("pending_tier") <= v.second) data.remove("pending_tier")
                     val code = r.optString("recovery_code")
                     if (code.isNotEmpty()) data.put("code", code)
@@ -263,11 +275,11 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         val p = normPhone(phone)
         val r = call("/status", JSONObject().put("phone", p).put("device_id", deviceId))
         when (r.optString("state")) {
-            "pending", "active" -> {
+            "pending", "active", "expired" -> {
                 synchronized(this) {
-                    if (data.optString("mode") != "paid") { data.put("mode", "paid").put("phone", p).put("token", "").remove("tier"); verified = null; save() }
+                    if (data.optString("mode") != "paid") { data.put("mode", "paid").put("phone", p).put("token", "").remove("tier"); data.remove("expired"); verified = null; save() }
                 }
-                if (r.optString("state") == "active") refresh()
+                if (r.optString("state") != "pending") refresh()
             }
             "rejected" -> throw ApiError(404, "lic_err_payment_rejected")
             "other_device" -> throw ApiError(409, "lic_err_other_device")
@@ -279,7 +291,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         val p = normPhone(phone)
         call("/redeem", JSONObject().put("phone", p).put("device_id", deviceId).put("code", code.trim()))
         synchronized(this) {
-            data.put("mode", "paid").put("phone", p).put("token", "").remove("tier")
+            data.put("mode", "paid").put("phone", p).put("token", "").remove("tier"); data.remove("expired")
             data.remove("pending_tier")
             verified = null
             save()
@@ -290,6 +302,13 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
     fun move(phone: String, recovery: String) {
         val p = normPhone(phone)
         val r = call("/move", JSONObject().put("phone", p).put("device_id", deviceId).put("recovery_code", recovery.trim()))
+        if (r.optString("state") == "expired") {
+            synchronized(this) {
+                data.put("mode", "paid").put("phone", p).put("token", "").put("expired", true).put("expires", r.optLong("expires")).put("code", r.optString("recovery_code")).remove("tier")
+                verified = null; save()
+            }
+            return
+        }
         ensurePubKey()
         val tk = r.optString("token")
         synchronized(this) {
@@ -297,7 +316,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
             val v = verifyToken(tk)
             if (v == null) { data.remove("phone"); throw ApiError(502, "err_server") }
             verified = Triple(tk, v.first, v.second)
-            data.put("mode", "paid").put("token", tk).put("tier", v.second).put("code", r.optString("recovery_code")).remove("pending_tier")
+            data.put("mode", "paid").put("token", tk).put("tier", v.second).put("expires", r.optLong("expires")).put("code", r.optString("recovery_code")).remove("pending_tier").remove("expired")
             save()
         }
     }
@@ -372,7 +391,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         } catch (_: Exception) { }
     }
 
-    fun due(): Boolean = state().let { it == "active" || it == "pending" || it == "locked" }
+    fun due(): Boolean = state().let { it == "active" || it == "pending" || it == "locked" || it == "expired" }
 
     companion object { const val SERVER = "https://alpha-server.kinfemichaelsemagnatanaw-7b8.workers.dev" }
 }

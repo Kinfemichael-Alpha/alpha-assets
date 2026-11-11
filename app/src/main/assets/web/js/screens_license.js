@@ -113,7 +113,7 @@
     const v = lic.v;
     const gated = GATED.includes(v.state);
     const body = h('div', { class: 'scroll ruled stack' });
-    const msgKey = v.state === 'trial_expired' ? 'lic_trial_over' : v.state === 'locked' ? 'lic_locked' : 'lic_intro';
+    const msgKey = v.state === 'trial_expired' ? 'lic_trial_over' : v.state === 'locked' ? 'lic_locked' : v.state === 'expired' ? 'lic_expired_info' : 'lic_intro';
     body.append(h('h1', { class: 'hello' }, t('lic_title')), h('div', { class: 'card tint' }, h('p', null, t(msgKey, { d: v.offline_days }))));
     if (v.state === 'locked') {
       const b = h('button', { class: 'btn block', type: 'button' }, t('lic_check_now'));
@@ -130,7 +130,7 @@
       body.append(f);
     }
     if (v.state === 'none') body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('lictrial') }, t('lic_trial_btn')));
-    if (v.tier < 5 && v.state !== 'locked') body.append(h('button', { class: 'btn block', type: 'button', onclick: () => A.go('licreg') }, t('lic_register_btn')));
+    if ((v.tier < 5 || lic.expiring()) && v.state !== 'locked') body.append(h('button', { class: 'btn block', type: 'button', onclick: () => A.go('licreg') }, t(v.state === 'expired' || lic.expiring() ? 'lic_renew_btn' : 'lic_register_btn')));
     body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('liccheck') }, t('lic_check_pay_btn')));
     body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('licredeem') }, t('lic_redeem_btn')));
     body.append(h('button', { class: 'btn ghost block', type: 'button', onclick: () => A.go('licmove') }, t('lic_move_btn')));
@@ -160,7 +160,7 @@
 
   A.screens.licreg = function licreg(p) {
     const v = lic.v;
-    const st = Object.assign({ tier: Math.max(2, (v.tier || 0) + 1), method: 'telebirr', phone: v.phone || '', txn: '', pname: '', last4: '', amount: '' }, p.v || {});
+    const st = Object.assign({ tier: lic.expiring() ? v.tier : Math.min(5, Math.max(2, (v.tier || 0) + 1)), method: 'telebirr', phone: v.phone || '', txn: '', pname: '', last4: '', amount: '' }, p.v || {});
     const tiersBox = h('div', { class: 'stack' });
     const payBox = h('div', { class: 'card tint stack' });
     const phone = phoneInput(st.phone);
@@ -184,7 +184,7 @@
     function drawTiers() {
       A.clear(tiersBox);
       for (let i = 2; i <= 5; i++) {
-        if (i <= v.tier) continue;
+        if (i < v.tier || (i === v.tier && !lic.expiring())) continue;
         const f = v.tiers[String(i)];
         if (!f) continue;
         tiersBox.append(h('button', { class: 'opt' + (st.tier === i ? ' ok' : ''), type: 'button', onclick: () => { st.tier = i; drawTiers(); drawPay(); } },
@@ -319,12 +319,25 @@
         h('p', { class: 'muted small' }, t('lic_code_warn')), ok))) };
   };
 
+  lic.expiring = function expiring() {
+    const v = lic.v;
+    return !!(v && v.expires && v.state === 'active' && v.expires * 1000 - Date.now() < 14 * 86400000);
+  };
+
+  function dateOf(sec) {
+    const d = new Date(sec * 1000);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
   lic.badge = function badge() {
     const v = lic.v;
     if (!v) return null;
     const f = v.features || {};
-    const name = v.state === 'trial' ? t('lic_trial_name') : t('lic_level', { n: v.tier < 0 ? 0 : v.tier, name: f.name || '' });
-    const up = v.tier < 5 ? h('button', { class: 'btn sm', type: 'button', onclick: () => A.go('license') }, v.state === 'pending' ? t('lic_pending_title') : t('lic_upgrade')) : null;
+    let name = v.state === 'trial' ? t('lic_trial_name') : t('lic_level', { n: v.tier < 0 ? 0 : v.tier, name: f.name || '' });
+    if (v.state === 'expired') name = t('lic_expired_badge', { d: v.expires ? dateOf(v.expires) : '' });
+    else if (v.state === 'active' && v.expires) name += ' · ' + t('lic_until', { d: dateOf(v.expires) });
+    const label = v.state === 'pending' ? t('lic_pending_title') : v.state === 'expired' || lic.expiring() ? t('lic_renew_btn') : t('lic_upgrade');
+    const up = (v.tier < 5 || v.state === 'expired' || lic.expiring()) ? h('button', { class: 'btn sm', type: 'button', onclick: () => A.go('license') }, label) : null;
     return h('div', { class: 'card tint row' }, h('span', { class: 'grow' }, name), up);
   };
 
