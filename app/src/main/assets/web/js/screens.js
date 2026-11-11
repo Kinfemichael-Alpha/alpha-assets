@@ -55,7 +55,7 @@
     const nick = A.S.state.nickname;
     const tile = (cls, icon, label, screen, ok = true) => h('button', { class: 'tile ' + cls + (ok ? '' : ' lock'), type: 'button', onclick: () => (ok ? A.go(screen) : A.upsell()) }, A.icon(icon), h('span', null, label));
     const updBox = h('div', { class: 'card tint row' }, h('span', { class: 'grow' }, t('upd_available')),
-      h('button', { class: 'btn sm', type: 'button', onclick: () => A.post('/api/update/open').catch((e) => A.info(e.message)) }, t('upd_download')));
+      h('button', { class: 'btn sm', type: 'button', onclick: () => A.post('/api/update/open').then((r) => { if (r && r.started) A.info(t('upd_started')); }).catch((e) => A.info(e.message)) }, t('upd_download')));
     updBox.hidden = true;
     const langBtn = h('button', { class: 'bar-btn txt', type: 'button', onclick: () => A.setLang(A.S.lang === 'AM' ? 'EN' : 'AM') }, t('lang_btn'));
     const setBtn = h('button', { class: 'bar-btn', type: 'button', 'aria-label': t('settings_title'), onclick: () => A.go('settings') }, A.icon('sliders'));

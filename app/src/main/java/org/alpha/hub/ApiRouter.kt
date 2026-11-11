@@ -292,6 +292,16 @@ class ApiRouter(private val ctx: Context) {
     }
 
     private fun updateOpen(): JSONObject {
+        try {
+            val dm = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
+            val req = android.app.DownloadManager.Request(android.net.Uri.parse(UpdateChecker.APK_URL))
+                .setTitle("ALPHA AI")
+                .setMimeType("application/vnd.android.package-archive")
+                .setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, "alpha-ai-" + (System.currentTimeMillis() / 1000) + ".apk")
+            dm.enqueue(req)
+            return JSONObject().put("ok", true).put("started", true)
+        } catch (_: Exception) { }
         try { ctx.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(UpdateChecker.APK_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { throw ApiError(500, "err_open_failed") }
         return JSONObject().put("ok", true)
     }
