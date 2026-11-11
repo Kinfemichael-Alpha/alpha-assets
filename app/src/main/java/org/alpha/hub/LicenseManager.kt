@@ -261,7 +261,8 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
                 synchronized(this) {
                     val v = verifyToken(tk) ?: throw ApiError(502, "err_server")
                     verified = Triple(tk, v.first, v.second)
-                    data.put("token", tk).put("tier", v.second).put("expires", r.optLong("expires")).remove("expired")
+                    data.put("token", tk).put("tier", v.second).put("expires", r.optLong("expires"))
+                    data.remove("expired")
                     if (data.optInt("pending_tier") <= v.second) data.remove("pending_tier")
                     val code = r.optString("recovery_code")
                     if (code.isNotEmpty()) data.put("code", code)
@@ -316,7 +317,8 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
             val v = verifyToken(tk)
             if (v == null) { data.remove("phone"); throw ApiError(502, "err_server") }
             verified = Triple(tk, v.first, v.second)
-            data.put("mode", "paid").put("token", tk).put("tier", v.second).put("expires", r.optLong("expires")).put("code", r.optString("recovery_code")).remove("pending_tier").remove("expired")
+            data.put("mode", "paid").put("token", tk).put("tier", v.second).put("expires", r.optLong("expires")).put("code", r.optString("recovery_code")).remove("pending_tier")
+            data.remove("expired")
             save()
         }
     }
