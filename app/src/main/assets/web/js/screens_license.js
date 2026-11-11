@@ -232,7 +232,7 @@
       lic.apply(await A.post('/api/license/notice_ok'));
       return lic.route();
     }, true));
-    return { el: A.page(A.bar({ title: t('notice_title'), back: false, pts: false }), h('div', { class: 'scroll ruled stack' },
+    return { el: A.page(A.bar({ title: t('notice_intro_title'), back: false, pts: false }), h('div', { class: 'scroll ruled stack' },
       ...secs, h('label', { class: 'row card' }, cb, h('span', { class: 'grow' }, t('notice_agree'))), go)) };
   };
 
