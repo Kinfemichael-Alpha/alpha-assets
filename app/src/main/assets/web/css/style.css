@@ -622,3 +622,13 @@ select.inp { appearance: auto; }
 .composer .bar-btn.attach:active { background: var(--primary); color: var(--white); }
 
 .tile.lock { opacity: .55; }
+
+/* compact dashboard tiles */
+.tiles { gap: 10px; }
+.tile { min-height: 94px; padding: 12px 14px; border-radius: 22px; font-size: 17px; gap: 8px; }
+.tile svg { width: 26px; height: 26px; }
+.tile::after { top: -30px; right: -30px; width: 88px; height: 88px; }
+.tile.main { min-height: 100px; font-size: 20px; }
+.tile.main svg { width: 30px; height: 30px; }
+.tile.wide { padding: 10px 14px; }
+.hello { font-size: 21px; }
