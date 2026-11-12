@@ -632,3 +632,8 @@ select.inp { appearance: auto; }
 .tile.main svg { width: 30px; height: 30px; }
 .tile.wide { padding: 10px 14px; }
 .hello { font-size: 21px; }
+
+.set-cat { display: flex; align-items: center; gap: 14px; width: 100%; text-align: start; font: inherit; color: inherit; border: 0; cursor: pointer; padding: 16px; }
+.set-cat .ico svg { width: 26px; height: 26px; }
+.set-cat b { display: block; font-size: 17px; }
+.set-desc { display: block; margin-top: 2px; }

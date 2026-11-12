@@ -302,7 +302,8 @@
           item('save', t('btn_save'), async () => {
             try { const r = await A.post('/api/chat/save'); A.toast(r.message, 2600); } catch (e) { A.info(e.message); }
           }),
-          item('folder', t('chats_menu'), () => { if (pending) return A.toast(t('err_busy')); A.go('chats'); })),
+          item('folder', t('chats_menu'), () => { if (pending) return A.toast(t('err_busy')); A.go('chats'); }),
+          item('sliders', t('ai_settings_menu'), () => { if (pending) return A.toast(t('err_busy')); A.go('settings', { cat: 'ai' }); })),
         actions: [{ label: t('close'), kind: 'ghost' }],
       });
     });

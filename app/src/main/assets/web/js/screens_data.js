@@ -25,7 +25,8 @@
   }
 
   /* ------------------------------------------------------------ ቅንብሮች */
-  A.screens.settings = function settings() {
+  A.screens.settings = function settings(params) {
+    const cat = params && params.cat;
     let watcher = null;
     let data = null;
     const secTheme = h('div', { class: 'card' });
@@ -363,9 +364,19 @@
       A.rerender();
     });
 
-    const el = A.page(
-      A.bar({ title: t('settings_title') }),
-      h('div', { class: 'scroll ruled stack' }, secTheme, secLang, secProfile, secProv, secAi, panel.el, secModels, secPublic, secTrans, resetBtn));
+    const CATS = [
+      { id: 'look', icon: 'flag', title: t('setcat_look'), desc: t('setcat_look_d'), parts: [secTheme, secLang, secProfile] },
+      { id: 'ai', icon: 'sparkle', title: t('setcat_ai'), desc: t('setcat_ai_d'), parts: [secProv, secAi] },
+      { id: 'models', icon: 'folder', title: t('setcat_models'), desc: t('setcat_models_d'), parts: [panel.el, secModels, secPublic, secTrans] },
+    ];
+    const cur = CATS.find((c) => c.id === cat);
+    const content = cur
+      ? h('div', { class: 'scroll ruled stack' }, ...cur.parts)
+      : h('div', { class: 'scroll ruled stack' },
+        ...CATS.map((c) => h('button', { class: 'card set-cat', type: 'button', onclick: () => A.go('settings', { cat: c.id }) },
+          A.icon(c.icon), h('span', { class: 'grow' }, h('b', null, c.title), h('span', { class: 'muted small set-desc' }, c.desc)), h('span', { class: 'muted' }, '\u203a'))),
+        resetBtn);
+    const el = A.page(A.bar({ title: cur ? cur.title : t('settings_title') }), content);
     drawTheme(); drawLang(); drawProfile(); drawAi(); drawProv(); drawTrans();
 
     return {
