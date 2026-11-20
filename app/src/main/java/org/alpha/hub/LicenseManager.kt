@@ -1,6 +1,7 @@
 package org.alpha.hub
 
 import android.content.Context
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Base64
 import java.io.File
@@ -49,6 +50,35 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         if (now + 300000L < seen) return false
         if (now - lastSave > 60000L && now > seen) { data.put("seen", now); lastSave = now; save() }
         return true
+    }
+
+    private fun bootCount(): Int = try { Settings.Global.getInt(ctx.contentResolver, "boot_count", -1) } catch (_: Exception) { -1 }
+
+    /** Remember what the server says the time is, tied to the phone's own stopwatch (works offline, ignores the phone's date). */
+    private fun anchor(serverSec: Long) {
+        if (serverSec <= 0L) return
+        synchronized(this) {
+            data.put("a_srv", serverSec).put("a_wall", System.currentTimeMillis()).put("a_el", SystemClock.elapsedRealtime()).put("a_boot", bootCount())
+            data.put("a_seen", serverSec * 1000L)
+            save()
+        }
+    }
+
+    private fun anchored(): Boolean = data.optLong("a_srv", 0L) > 0L
+
+    /** Best estimate of the real current time in ms: server time + stopwatch; after a reboot, phone clock corrected by the last known error. */
+    private fun trusted(): Long {
+        if (!anchored()) return System.currentTimeMillis()
+        val srv = data.optLong("a_srv") * 1000L
+        val el = SystemClock.elapsedRealtime()
+        val ael = data.optLong("a_el")
+        val b = bootCount()
+        val sameBoot = el >= ael && (b == -1 || b == data.optInt("a_boot", -1))
+        var t = if (sameBoot) srv + (el - ael) else System.currentTimeMillis() + (srv - data.optLong("a_wall"))
+        val seen = data.optLong("a_seen", 0L)
+        if (t < seen) t = seen
+        if (t - seen > 60000L) { data.put("a_seen", t); save() }
+        return t
     }
 
     private fun cfg(): JSONObject = try { JSONObject(sync.cached("tiers.json") ?: throw Exception()) } catch (_: Exception) { JSONObject() }
@@ -123,8 +153,8 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
 
     @Synchronized
     fun state(): String {
-        val now = System.currentTimeMillis()
-        val ok = clockOk(now)
+        val now = trusted()
+        val ok = anchored() || clockOk(now)
         return when (data.optString("mode")) {
             "free" -> "free"
             "trial" -> if (ok && now < data.optLong("trial_end")) "trial" else "trial_expired"
@@ -237,6 +267,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         retryAck()
         val phone = synchronized(this) { if (data.optString("mode") != "paid") return; data.optString("phone") }
         val r = call("/status", JSONObject().put("phone", phone).put("device_id", deviceId))
+        anchor(r.optLong("now"))
         when (r.optString("state")) {
             "wipe" -> doWipe()
             "rejected" -> synchronized(this) {
@@ -246,6 +277,8 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
             }
             "expired" -> synchronized(this) {
                 data.put("token", "").put("expired", true).put("expires", r.optLong("expires")).remove("tier")
+                val c = r.optString("recovery_code")
+                if (c.isNotEmpty() && !data.optBoolean("ack_code_pending")) data.put("code", c)
                 verified = null; save()
             }
             "pending" -> synchronized(this) {
@@ -259,13 +292,14 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
                 ensurePubKey()
                 val tk = r.optString("token")
                 synchronized(this) {
+                    // keep the one-time code first, so a failure below can never lose it
+                    val code = r.optString("recovery_code")
+                    if (code.isNotEmpty() && !data.optBoolean("ack_code_pending")) { data.put("code", code); save() }
                     val v = verifyToken(tk) ?: throw ApiError(502, "err_server")
                     verified = Triple(tk, v.first, v.second)
                     data.put("token", tk).put("tier", v.second).put("expires", r.optLong("expires"))
                     data.remove("expired")
                     if (data.optInt("pending_tier") <= v.second) data.remove("pending_tier")
-                    val code = r.optString("recovery_code")
-                    if (code.isNotEmpty()) data.put("code", code)
                     save()
                 }
             }
@@ -275,6 +309,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
     fun checkPayment(phone: String) {
         val p = normPhone(phone)
         val r = call("/status", JSONObject().put("phone", p).put("device_id", deviceId))
+        anchor(r.optLong("now"))
         when (r.optString("state")) {
             "pending", "active", "expired" -> {
                 synchronized(this) {
@@ -303,6 +338,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
     fun move(phone: String, recovery: String) {
         val p = normPhone(phone)
         val r = call("/move", JSONObject().put("phone", p).put("device_id", deviceId).put("recovery_code", recovery.trim()))
+        anchor(r.optLong("now"))
         if (r.optString("state") == "expired") {
             synchronized(this) {
                 data.put("mode", "paid").put("phone", p).put("token", "").put("expired", true).put("expires", r.optLong("expires")).put("code", r.optString("recovery_code")).remove("tier")
@@ -372,7 +408,19 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
         } catch (_: Exception) { } finally { c.disconnect() }
     }
 
-    fun ackCode() { synchronized(this) { data.remove("code"); save() } }
+    fun ackCode() {
+        synchronized(this) { data.remove("code"); data.put("ack_code_pending", true); save() }
+        retryAckCode()
+    }
+
+    fun retryAckCode() {
+        val phone = synchronized(this) { if (!data.optBoolean("ack_code_pending")) return; data.optString("phone") }
+        if (phone.isEmpty()) { synchronized(this) { data.remove("ack_code_pending"); save() }; return }
+        try {
+            call("/ack-code", JSONObject().put("phone", phone).put("device_id", deviceId))
+            synchronized(this) { data.remove("ack_code_pending"); save() }
+        } catch (_: Exception) { }
+    }
 
     fun noticeOk() { synchronized(this) { data.put("notice", true); save() } }
 
@@ -386,6 +434,7 @@ class LicenseManager(private val ctx: Context, private val sync: ConfigSync) {
     }
 
     fun retryAck() {
+        retryAckCode()
         if (!synchronized(this) { data.optBoolean("ack_pending") }) return
         try {
             call("/ack-wipe", JSONObject().put("device_id", deviceId))
